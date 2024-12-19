@@ -1,0 +1,107 @@
+{
+  "folders": [
+    {
+      "name": "libs/monorepo-utils",
+      "path": "libs/monorepo-utils"
+    },
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit",
+      "source.fixAll.stylelint": "explicit"
+    },
+    "[typescript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[typescriptreact]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[javascript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[javascriptreact]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[css]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[markdown]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[json]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "cSpell.words": [
+      "accuvote",
+      "AGPL",
+      "canonicalization",
+      "canonicalize",
+      "Canonicalized",
+      "canonicalizes",
+      "cardless",
+      "castability",
+      "cvrs",
+      "frontends",
+      "hmpb",
+      "imdebug",
+      "jsonl",
+      "luxon",
+      "overvote",
+      "overvoted",
+      "overvotes",
+      "plustek",
+      "pollworker",
+      "previewable",
+      "qrcode",
+      "SEMS",
+      "serializable",
+      "smartcard",
+      "smartcards",
+      "stylelint",
+      "superadmin",
+      "testid",
+      "uncastable",
+      "unconfigure",
+      "unconfigured",
+      "unconfiguring",
+      "undervote",
+      "undervoted",
+      "undervotes",
+      "unmount",
+      "unprogram",
+      "unprogramming",
+      "unprograms",
+      "usbstick",
+      "votingworks",
+      "VVSG",
+      "yesno"
+    ],
+    "search.exclude": {
+      "**/.jestcache": true,
+      "**/build": true,
+      "**/coverage": true
+    },
+    "files.exclude": {
+      "**/*.tsbuildinfo": true,
+      "**/.jestcache": true,
+      "**/build": true,
+      "**/coverage": true
+    },
+    "typescript.tsdk": "vxpollbook/node_modules/typescript/lib",
+    "editor.tabSize": 2
+  },
+  "extensions": {
+    "recommendations": [
+      "esbenp.prettier-vscode",
+      "dbaeumer.vscode-eslint",
+      "stylelint.vscode-stylelint",
+      "streetsidesoftware.code-spell-checker",
+      "rust-lang.rust-analyzer",
+      "tamasfe.even-better-toml"
+    ]
+  }
+}

@@ -1,5 +1,6 @@
 packages:
-  - "frontend"
-  - "backend"
-  - "libs/*"
-  - "libs/grout/*"
+  - 'frontend'
+  - 'backend'
+  - 'libs/*'
+  - 'libs/grout/*'
+  - 'script'

@@ -3,4 +3,5 @@ packages:
   - 'backend'
   - 'libs/*'
   - 'libs/grout/*'
+  - 'libs/@types/*'
   - 'script'

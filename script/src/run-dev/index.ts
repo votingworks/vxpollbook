@@ -39,8 +39,9 @@ function npmBinCommand({
     env: {
       ...process.env,
       ...(env ?? {}),
-      PATH: `${join(cwd, 'node_modules', '.bin')}:${env?.['PATH'] ?? process.env['PATH']
-        }`,
+      PATH: `${join(cwd, 'node_modules', '.bin')}:${
+        env?.['PATH'] ?? process.env['PATH']
+      }`,
     },
     ...rest,
   };
@@ -75,7 +76,6 @@ export async function main(
   const logger = new Logger({});
 
   let coreOnly = false;
-  let frontend: string | undefined;
   for (let i = 0; i < args.length; i += 1) {
     const arg = args[i] as string;
     switch (arg) {
@@ -93,31 +93,15 @@ export async function main(
           stderr.write(`Unknown option: ${arg}\n`);
           return 1;
         }
-
-        if (frontend) {
-          stderr.write(`Only one frontend can be specified, got: ${arg}\n`);
-          return 1;
-        }
-
-        frontend = arg;
-        break;
     }
   }
 
-  if (!frontend) {
-    stderr.write('No frontend specified\n');
-    return 1;
-  }
-
   const monorepoRoot = join(__dirname, '../../..');
-  let frontendRoot = join(monorepoRoot, 'apps', frontend, 'frontend');
-  // Support our old file structure while we transition to the new apps/ structure.
-  if (!fs.existsSync(frontendRoot)) {
-    frontendRoot = join(monorepoRoot, 'frontends', frontend);
-  }
+  let frontendRoot = join(monorepoRoot, 'frontend');
+  const frontend = 'vxpollbook';
 
   if (!fs.existsSync(frontendRoot)) {
-    stderr.write(`Frontend not found: ${frontend}\n`);
+    stderr.write(`Frontend not found\n`);
     return 1;
   }
 

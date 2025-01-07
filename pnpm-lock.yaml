@@ -260,6 +260,9 @@ importers:
       '@votingworks/monorepo-utils':
         specifier: workspace:*
         version: link:../libs/monorepo-utils
+      '@votingworks/pollbook-backend':
+        specifier: workspace:*
+        version: link:../backend
       '@votingworks/test-utils':
         specifier: workspace:*
         version: link:../libs/test-utils

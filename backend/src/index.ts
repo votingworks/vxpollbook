@@ -7,7 +7,7 @@ import { WORKSPACE } from './globals';
 import * as server from './server';
 import { createWorkspace } from './workspace';
 
-export type { Api } from './app';
+export type { Api, Voter, VoterSearchParams } from './app';
 
 loadEnvVarsFromDotenvFiles();
 

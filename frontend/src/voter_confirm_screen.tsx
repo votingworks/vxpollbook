@@ -16,10 +16,10 @@ import {
   RadioGroup,
   SearchSelect,
 } from '@votingworks/ui';
-import { Voter } from './types';
 import { Column, Row } from './layout';
 import { useState } from 'react';
 import { NoNavScreen } from './nav_screen';
+import type { Voter } from '@votingworks/pollbook-backend';
 
 export function VoterConfirmScreen({
   voter,

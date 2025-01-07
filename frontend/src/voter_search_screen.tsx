@@ -10,17 +10,15 @@ import {
   Screen,
   Main,
   Card,
+  Icons,
 } from '@votingworks/ui';
 import debounce from 'lodash.debounce';
 import { useState, useMemo } from 'react';
 import { Column, Form, Row, InputGroup } from './layout';
-import { Voter } from './types';
-import { VoterConfirmScreen } from './voter_confirm_screen';
-import votersJson from './voters.json';
+import type { Voter, VoterSearchParams } from '@votingworks/pollbook-backend';
 import styled from 'styled-components';
 import { NoNavScreen } from './nav_screen';
-
-const voters: Voter[] = votersJson as any;
+import { searchVoters } from './api';
 
 const VoterTableWrapper = styled(Card)`
   overflow: hidden;
@@ -45,35 +43,28 @@ const VoterTable = styled(Table)`
   }
 `;
 
-interface Search {
-  lastName: string;
-  firstName: string;
-}
-
 export function VoterSearchScreen({
   onSelect,
 }: {
   onSelect: (voter: Voter) => void;
 }): JSX.Element {
-  const [search, setSearch] = useState<Search>({
+  const [search, setSearch] = useState<VoterSearchParams>({
     lastName: '',
     firstName: '',
   });
-  const [filter, setFilter] = useState<Search>(search);
-  const updateFilter = useMemo(() => debounce(setFilter, 500), []);
+  const [debouncedSearch, setDebouncedSearch] =
+    useState<VoterSearchParams>(search);
+  const updateDebouncedSearch = useMemo(
+    () => debounce(setDebouncedSearch, 500),
+    []
+  );
 
-  function updateSearch(newSearch: Partial<Search>) {
+  function updateSearch(newSearch: Partial<VoterSearchParams>) {
     setSearch({ ...search, ...newSearch });
-    updateFilter({ ...search, ...newSearch });
+    updateDebouncedSearch({ ...search, ...newSearch });
   }
 
-  const filteredVoters = voters.filter((voter) => {
-    return (
-      voter.lastName.toUpperCase().startsWith(filter.lastName) &&
-      voter.firstName.toUpperCase().startsWith(filter.firstName)
-    );
-  });
-  const NUM_VOTERS_TO_SHOW = 20;
+  const searchVotersQuery = searchVoters.useQuery(debouncedSearch);
 
   return (
     <NoNavScreen>
@@ -110,25 +101,25 @@ export function VoterSearchScreen({
                 </InputGroup>
               </Row>
             </Form>
-            {(search.lastName || search.firstName) &&
-              (filteredVoters.length === 0 ? (
-                <Callout icon="Info" color="neutral">
-                  No voters matched.
-                </Callout>
-              ) : filteredVoters.length > NUM_VOTERS_TO_SHOW ? (
+            {searchVotersQuery.data &&
+              (typeof searchVotersQuery.data === 'number' ? (
                 <Callout icon="Info" color="neutral">
                   <div>
-                    Voters matched: {filteredVoters.length}. Refine your search
+                    Voters matched: {searchVotersQuery.data}. Refine your search
                     further to view results.
                   </div>
                 </Callout>
+              ) : searchVotersQuery.data.length === 0 ? (
+                <Callout icon="Info" color="neutral">
+                  No voters matched.
+                </Callout>
               ) : (
                 <>
-                  <div>Voters matched: {filteredVoters.length}</div>
+                  <div>Voters matched: {searchVotersQuery.data.length}</div>
                   <VoterTableWrapper>
                     <VoterTable>
                       <tbody>
-                        {filteredVoters.map((voter) => (
+                        {searchVotersQuery.data.map((voter) => (
                           <tr key={voter.voterID}>
                             <td>
                               <H2 style={{ margin: 0 }}>
@@ -145,17 +136,20 @@ export function VoterSearchScreen({
                               </Font>
                             </td>
                             <td>
-                              <div>{voter.voterID}</div>
-                            </td>
-                            <td>
-                              <Button
-                                style={{ flexWrap: 'nowrap' }}
-                                rightIcon="Next"
-                                color="primary"
-                                onPress={() => onSelect(voter)}
-                              >
-                                <Font noWrap>Start Check-In</Font>
-                              </Button>
+                              {voter.checkedInAt ? (
+                                <Row style={{ gap: '0.5rem' }}>
+                                  <Icons.Done /> Checked In
+                                </Row>
+                              ) : (
+                                <Button
+                                  style={{ flexWrap: 'nowrap' }}
+                                  rightIcon="Next"
+                                  color="primary"
+                                  onPress={() => onSelect(voter)}
+                                >
+                                  <Font noWrap>Start Check-In</Font>
+                                </Button>
+                              )}
                             </td>
                           </tr>
                         ))}

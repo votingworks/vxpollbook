@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Voter } from './types';
 import { throwIllegalValue } from '@votingworks/basics';
 import { VoterSearchScreen } from './voter_search_screen';
 import { VoterConfirmScreen } from './voter_confirm_screen';
@@ -12,6 +11,8 @@ import {
   Icons,
 } from '@votingworks/ui';
 import { Column } from './layout';
+import type { Voter } from '@votingworks/pollbook-backend';
+import { checkInVoter } from './api';
 
 type CheckInFlowState =
   | { step: 'search' }
@@ -23,6 +24,8 @@ export function PollWorkerScreen(): JSX.Element {
   const [flowState, setFlowState] = useState<CheckInFlowState>({
     step: 'search',
   });
+  const checkInVoterMutation = checkInVoter.useMutation();
+
   switch (flowState.step) {
     case 'search':
       return (
@@ -36,16 +39,21 @@ export function PollWorkerScreen(): JSX.Element {
         <VoterConfirmScreen
           voter={flowState.voter}
           onCancel={() => setFlowState({ step: 'search' })}
-          onConfirm={() =>
-            setFlowState({ step: 'printing', voter: flowState.voter })
-          }
+          onConfirm={() => {
+            checkInVoterMutation.mutate(
+              { voterId: flowState.voter.voterID },
+              {
+                onSuccess: () =>
+                  // TODO check mutation result and show error message if necessary
+                  setFlowState({ step: 'success', voter: flowState.voter }),
+              }
+            );
+            setFlowState({ step: 'printing', voter: flowState.voter });
+          }}
         />
       );
 
     case 'printing':
-      setTimeout(() => {
-        setFlowState({ step: 'success', voter: flowState.voter });
-      }, 2000);
       return (
         <NoNavScreen>
           <Column style={{ justifyContent: 'center', flex: 1 }}>

@@ -5,6 +5,14 @@
       "path": "libs/monorepo-utils"
     },
     {
+      "name": "frontend",
+      "path": "frontend"
+    },
+    {
+      "name": "backend",
+      "path": "backend"
+    },
+    {
       "path": "."
     }
   ],

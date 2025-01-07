@@ -5,9 +5,11 @@ import { loadEnvVarsFromDotenvFiles } from '@votingworks/backend';
 import { BaseLogger, LogSource } from '@votingworks/logging';
 import { WORKSPACE } from './globals';
 import * as server from './server';
+import * as backupWorker from './backup_worker';
 import { createWorkspace } from './workspace';
 
-export type * from './app';
+export type { Api } from './app';
+export * from './types';
 
 loadEnvVarsFromDotenvFiles();
 
@@ -24,6 +26,8 @@ function main(): Promise<number> {
   );
 
   server.start({ workspace });
+  backupWorker.start({ workspace });
+
   return Promise.resolve(0);
 }
 

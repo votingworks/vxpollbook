@@ -94,6 +94,7 @@ async function getOrCreateCachedBrowser(): Promise<Browser> {
 export interface RenderSpec {
   document: JSX.Element | JSX.Element[];
   paperDimensions?: PaperDimensions;
+  landscape?: boolean;
   marginDimensions?: MarginDimensions;
   outputPath?: string;
   usePrintTheme?: boolean;
@@ -123,6 +124,7 @@ export async function renderToPdf(
     document,
     outputPath,
     paperDimensions: { width, height } = PAPER_DIMENSIONS.Letter,
+    landscape,
     marginDimensions = DEFAULT_MARGIN_DIMENSIONS,
     usePrintTheme,
   } of specs) {
@@ -217,6 +219,7 @@ export async function renderToPdf(
               )
             : height
         ),
+        landscape,
         margin: {
           top: inchesToText(marginDimensions.top),
           right: inchesToText(marginDimensions.right),

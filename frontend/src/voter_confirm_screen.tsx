@@ -71,7 +71,7 @@ export function VoterConfirmScreen({
               role="radiogroup"
             >
               <RadioOption
-                label="Valid Photo ID"
+                label="In-State Photo ID"
                 value="id"
                 isSelected={identificationMethod.type === 'id'}
                 onChange={(value) => setIdentificationMethod({ type: value })}

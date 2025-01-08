@@ -105,6 +105,7 @@ export function VoterChecklistTable({
           <th>Voter Name</th>
           <th>CVA</th>
           <th>OOS&nbsp;DL</th>
+          <th>PR</th>
           <th>Domicile Address</th>
           <th>Mailing Address</th>
           <th>Dist</th>
@@ -115,11 +116,17 @@ export function VoterChecklistTable({
       <tbody>
         {voters.map((voter) => (
           <tr key={voter.voterId}>
-            <td>☐</td>
+            <td>{voter.checkIn ? '☑' : '☐'}</td>
             <td>{voter.party}</td>
             <td>
-              {voter.lastName}, {voter.suffix} {voter.firstName}{' '}
-              {voter.middleName}
+              <span
+                style={{
+                  textDecoration: voter.checkIn ? 'line-through' : 'none',
+                }}
+              >
+                {voter.lastName}
+              </span>
+              , {voter.suffix} {voter.firstName} {voter.middleName}
             </td>
             <td>
               {voter.checkIn?.identificationMethod.type ===
@@ -127,11 +134,27 @@ export function VoterChecklistTable({
                 ? '☑'
                 : '☐'}
             </td>
-            <td style={{ whiteSpace: 'nowrap' }}>
+            <td>
               {voter.checkIn?.identificationMethod.type ===
               'outOfStateDriversLicense' ? (
-                <span>
-                  <u>voter.checkIn.identificationMethod.state</u>
+                <span style={{ color: 'red', textDecoration: 'underline' }}>
+                  {voter.checkIn.identificationMethod.state}
+                </span>
+              ) : (
+                '__'
+              )}
+            </td>
+            <td>
+              {voter.checkIn?.identificationMethod.type ===
+              'personalRecognizance' ? (
+                <span style={{ color: 'red' }}>
+                  {
+                    {
+                      supervisor: 'S',
+                      moderator: 'M',
+                      cityClerk: 'C',
+                    }[voter.checkIn.identificationMethod.recognizer]
+                  }
                 </span>
               ) : (
                 '__'

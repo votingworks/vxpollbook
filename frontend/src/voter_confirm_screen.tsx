@@ -77,14 +77,6 @@ export function VoterConfirmScreen({
                 onChange={(value) => setIdentificationMethod({ type: value })}
               />
               <RadioOption
-                label="Challenged Voter Affidavit (CVA)"
-                value="challengedVoterAffidavit"
-                isSelected={
-                  identificationMethod.type === 'challengedVoterAffidavit'
-                }
-                onChange={(value) => setIdentificationMethod({ type: value })}
-              />
-              <RadioOption
                 label="Out-of-State Driver's License (OOS DL)"
                 value="outOfStateDriversLicense"
                 isSelected={
@@ -112,6 +104,14 @@ export function VoterConfirmScreen({
                   }
                 />
               )}
+              <RadioOption
+                label="Challenged Voter Affidavit (CVA)"
+                value="challengedVoterAffidavit"
+                isSelected={
+                  identificationMethod.type === 'challengedVoterAffidavit'
+                }
+                onChange={(value) => setIdentificationMethod({ type: value })}
+              />
               <RadioOption
                 label="Personal Recognizance"
                 value="personalRecognizance"

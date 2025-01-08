@@ -3,7 +3,7 @@ import { Client as DbClient } from '@votingworks/db';
 import { join } from 'node:path';
 // import { v4 as uuid } from 'uuid';
 import { BaseLogger } from '@votingworks/logging';
-import { find } from '@votingworks/basics';
+import { find, groupBy } from '@votingworks/basics';
 import { readFileSync } from 'node:fs';
 import { Voter, VoterIdentificationMethod, VoterSearchParams } from './types';
 
@@ -40,8 +40,10 @@ export class Store {
     return new Store(DbClient.memoryClient(SchemaPath));
   }
 
-  listVoters(): Voter[] {
-    return voters;
+  groupVotersAlphabeticallyByLastName(): Array<Voter[]> {
+    return groupBy(voters, (v) => v.lastName[0].toUpperCase()).map(
+      ([, voterGroup]) => voterGroup
+    );
   }
 
   searchVoters(searchParams: VoterSearchParams): Voter[] | number {

@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import React from 'react';
 import { join } from 'node:path';
-import { exists, move } from 'fs-extra';
+import { exists } from 'fs-extra';
 import {
   ExportableData,
   ExportDataResult,
@@ -9,8 +9,12 @@ import {
 } from '@votingworks/backend';
 import { setInterval } from 'node:timers/promises';
 import { renderToPdf } from '@votingworks/printing';
+import { UsbDrive } from '@votingworks/usb-drive';
+import { cp } from 'node:fs/promises';
 import { Workspace } from './workspace';
-import { VoterChecklist } from './voter_checklist';
+import { VoterChecklist, VoterChecklistHeader } from './voter_checklist';
+
+const BACKUP_INTERVAL = 1_000 * 60; // 1 minute
 
 /**
  * Save a file to disk.
@@ -48,9 +52,14 @@ export function exportFile({
   return exporter.exportData(path, data);
 }
 
-async function exportBackupVoterChecklist(workspace: Workspace): Promise<void> {
-  const checklistElement = React.createElement(VoterChecklist, {
-    voters: workspace.store.listVoters(),
+async function exportBackupVoterChecklist(
+  workspace: Workspace,
+  usbDrive: UsbDrive
+): Promise<void> {
+  console.time('Exported backup voter checklist');
+  const headerElement = React.createElement(VoterChecklistHeader);
+  const tableElement = React.createElement(VoterChecklist, {
+    voterGroups: workspace.store.groupVotersAlphabeticallyByLastName(),
   });
   const latestBackupPath = join(
     workspace.assetDirectoryPath,
@@ -61,14 +70,15 @@ async function exportBackupVoterChecklist(workspace: Workspace): Promise<void> {
     'previous_backup_voter_checklist.pdf'
   );
   if (await exists(latestBackupPath)) {
-    await move(latestBackupPath, previousBackupPath, { overwrite: true });
+    await cp(latestBackupPath, previousBackupPath);
   }
   const pdf = (
     await renderToPdf({
-      document: checklistElement,
+      headerTemplate: headerElement,
+      document: tableElement,
       landscape: true,
       marginDimensions: {
-        top: 0.25,
+        top: 0.7, // Leave space for header
         right: 0.25,
         bottom: 0.25,
         left: 0.25,
@@ -76,19 +86,32 @@ async function exportBackupVoterChecklist(workspace: Workspace): Promise<void> {
     })
   ).unsafeUnwrap();
   (await exportFile({ path: latestBackupPath, data: pdf })).unsafeUnwrap();
+  console.timeEnd('Exported backup voter checklist');
+
+  const usbDriveStatus = await usbDrive.status();
+  if (usbDriveStatus.status === 'mounted') {
+    console.time('Copied backup voter checklist to USB drive');
+    await cp(
+      latestBackupPath,
+      join(usbDriveStatus.mountPoint, 'backup_voter_checklist.pdf')
+    );
+    console.timeEnd('Copied backup voter checklist to USB drive');
+  }
 }
 
-const BACKUP_INTERVAL = 1_000 * 60; // 1 minute
-
-export function start({ workspace }: { workspace: Workspace }): void {
+export function start({
+  workspace,
+  usbDrive,
+}: {
+  workspace: Workspace;
+  usbDrive: UsbDrive;
+}): void {
   console.log('Starting VxPollbook backup worker');
   process.nextTick(async () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     for await (const _ of setInterval(BACKUP_INTERVAL)) {
       console.log('Exporting backup voter checklist');
-      console.time('Exported backup voter checklist');
-      await exportBackupVoterChecklist(workspace);
-      console.timeEnd('Exported backup voter checklist');
+      await exportBackupVoterChecklist(workspace, usbDrive);
     }
   });
 }

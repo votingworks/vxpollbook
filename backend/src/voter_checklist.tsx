@@ -45,16 +45,26 @@ const StyledVoterChecklistHeader = styled.div`
   }
 `;
 
-export function VoterChecklistHeader(): JSX.Element {
+export function VoterChecklistHeader({
+  totalCheckIns,
+}: {
+  totalCheckIns: number;
+}): JSX.Element {
   return (
     <StyledVoterChecklistHeader>
       <div>
         <h1>Backup Voter Checklist</h1>
         <h2>Sample Election &bull; Sample Town</h2>
       </div>
-      <div style={{ textAlign: 'right' }}>
+      <div
+        style={{
+          display: 'grid',
+          columnGap: '2em',
+          gridTemplateColumns: 'auto auto',
+        }}
+      >
         <div>
-          Exported at:{' '}
+          Exported At:{' '}
           {new Intl.DateTimeFormat('en', {
             month: 'numeric',
             day: 'numeric',
@@ -68,6 +78,7 @@ export function VoterChecklistHeader(): JSX.Element {
           Page: <span className="pageNumber" />/
           <span className="totalPages" />
         </div>
+        <div>Total Check-ins: {totalCheckIns.toLocaleString()}</div>
       </div>
     </StyledVoterChecklistHeader>
   );

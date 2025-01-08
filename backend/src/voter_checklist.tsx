@@ -1,8 +1,14 @@
 import styled from 'styled-components';
-import { VX_DEFAULT_FONT_FAMILY_DECLARATION } from '@votingworks/ui';
+import {
+  VX_DEFAULT_FONT_FAMILY_DECLARATION,
+  DesktopPalette,
+} from '@votingworks/ui';
 import { createCanvas } from 'canvas';
 import JsBarcode from 'jsbarcode';
 import { Voter } from './types';
+
+const grayBackgroundColor = DesktopPalette.Gray10;
+const redTextColor = DesktopPalette.Red80;
 
 function generateBarcode(value: string) {
   const canvas = createCanvas(100, 20);
@@ -85,7 +91,7 @@ const VoterTable = styled.table`
   }
 
   tr:nth-child(even) td {
-    background-color: rgb(234, 234, 234);
+    background-color: ${grayBackgroundColor};
   }
 
   page-break-after: always;
@@ -137,9 +143,11 @@ export function VoterChecklistTable({
             <td>
               {voter.checkIn?.identificationMethod.type ===
               'outOfStateDriversLicense' ? (
-                <span style={{ color: 'red', textDecoration: 'underline' }}>
-                  {voter.checkIn.identificationMethod.state}
-                </span>
+                <u>
+                  <span style={{ color: redTextColor }}>
+                    {voter.checkIn.identificationMethod.state}
+                  </span>
+                </u>
               ) : (
                 '__'
               )}
@@ -147,7 +155,7 @@ export function VoterChecklistTable({
             <td>
               {voter.checkIn?.identificationMethod.type ===
               'personalRecognizance' ? (
-                <span style={{ color: 'red' }}>
+                <span style={{ color: redTextColor }}>
                   {
                     {
                       supervisor: 'S',

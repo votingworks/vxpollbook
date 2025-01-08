@@ -38,4 +38,4 @@ sudo ip link set bat0 up
 
 sudo ip addr add $CURRENT_IP/24 dev bat0
 
-echo "Successfully joined the network. Run `batctl n` to see all nodes in the network." 
+echo "Successfully joined the network. Run sudo batctl n to see all nodes in the network." 

@@ -2,10 +2,9 @@ import * as grout from '@votingworks/grout';
 import express, { Application } from 'express';
 import { find, sleep } from '@votingworks/basics';
 import { Workspace } from './workspace';
-import votersJson from './voters.json';
+// import votersJson from './voters.json';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const voters: Voter[] = votersJson as any;
+const voters: Voter[] = []; // votersJson as any;
 
 export type VoterIdentificationMethod =
   | {

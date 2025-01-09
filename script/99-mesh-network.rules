@@ -1,0 +1,1 @@
+ACTION=="add", SUBSYSTEM=="net", KERNEL=="wlx*", RUN+="/bin/bash /home/vx/code/vxpollbook/script/setup_basic_mesh.sh"

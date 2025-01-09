@@ -6,7 +6,7 @@ import { Workspace } from './workspace';
  * Starts the server.
  */
 export function start({ workspace }: { workspace: Workspace }): void {
-  const app = buildApp(workspace);
+  const app = buildApp(workspace, process.env.MACHINE_ID || '0000');
 
   app.listen(PORT, () => {
     // eslint-disable-next-line no-console

@@ -9,6 +9,12 @@ import { AVAILABLE_IP_ADDRESSES } from './globals';
 // TODO read machine ID from env or network
 const machineId = 'placeholder-machine-id';
 
+export function createApiClientForStaticIp(
+  ipAddress: string
+): grout.Client<Api> {
+  return grout.createClient<Api>({ baseUrl: `${ipAddress}/api` });
+}
+
 function buildApi(workspace: Workspace) {
   const { store } = workspace;
   const knownMachineIds = new Map<string, Date>();
@@ -48,26 +54,18 @@ function buildApi(workspace: Workspace) {
       };
     },
 
-    heartbeat(): boolean {
-      return true;
+    heartbeat(): string {
+      return machineId;
     },
 
     async syncConnections(): Promise<void> {
       console.log('attempting to sync');
       for (const ipAddress of AVAILABLE_IP_ADDRESSES) {
-        // Call the /heartbeat endpoint on each IP address at port 3002
-        // If you get a response of true, add the IP address to the list of connected machines with the current last seen time.
-        // Otherwise ignore it.
         try {
-          const response = await fetch(
-            `http://${ipAddress}:3002/api/heartbeat`
-          );
-          const isAlive = await response.json();
-          if (isAlive) {
-            knownMachineIds.set(ipAddress, new Date());
-          }
-        } catch (error) {
-          // Ignore errors, machine is considered not connected
+          const apiClient = createApiClientForStaticIp(ipAddress);
+          const seenMachineId = apiClient.heartbeat();
+          
+          knownMachineIds.set(seenMachineId, new Date());
         }
       }
       console.log(knownMachineIds);
@@ -82,7 +80,6 @@ export function buildApp(workspace: Workspace): Application {
   const api = buildApi(workspace);
   app.use('/api', grout.buildRouter(api, express));
   app.use(express.static(workspace.assetDirectoryPath));
-  app.get('/heartbeat', (_req, res) => res.send(true));
   // set up a interval to call syncConnections every 5 seconds
   setInterval(() => {
     void api.syncConnections();

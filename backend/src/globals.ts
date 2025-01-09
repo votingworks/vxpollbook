@@ -8,7 +8,7 @@ const NodeEnvSchema = z.union([
   z.literal('production'),
 ]);
 
-const AVAILABLE_IP_ADDRESSES = [
+export const AVAILABLE_IP_ADDRESSES = [
   '192.168.1.1',
   '192.168.1.2',
   '192.168.1.3',

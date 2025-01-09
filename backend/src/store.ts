@@ -7,9 +7,9 @@ import { find, groupBy } from '@votingworks/basics';
 import { readFileSync } from 'node:fs';
 import { Voter, VoterIdentificationMethod, VoterSearchParams } from './types';
 
-const voters: Voter[] = JSON.parse(
+const voters: Voter[] = []; /* JSON.parse(
   readFileSync(join(__dirname, '../../voters.json'), 'utf-8')
-);
+); */
 
 // function convertSqliteTimestampToIso8601(
 //   sqliteTimestamp: string

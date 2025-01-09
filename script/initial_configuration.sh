@@ -1,6 +1,6 @@
 #!/bin/bash
 
-sudo apt install avahi-daemon avahi-utils
+sudo apt install avahi-daemon avahi-utils avahi-autoipd
 sudo systemctl disable NetworkManager
 sudo systemctl disable firewalld
 sudo systemctl stop NetworkManager

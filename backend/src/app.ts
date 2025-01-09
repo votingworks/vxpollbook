@@ -82,6 +82,7 @@ export function buildApp(workspace: Workspace): Application {
   const api = buildApi(workspace);
   app.use('/api', grout.buildRouter(api, express));
   app.use(express.static(workspace.assetDirectoryPath));
+  app.get('/heartbeat', (_req, res) => res.send(true));
   // set up a interval to call syncConnections every 5 seconds
   setInterval(() => {
     void api.syncConnections();

@@ -1,10 +1,12 @@
 import * as grout from '@votingworks/grout';
 import express, { Application } from 'express';
 import { find, sleep } from '@votingworks/basics';
+import * as bonjour from 'bonjour';
 import { Workspace } from './workspace';
 // import votersJson from './voters.json';
 
 const voters: Voter[] = []; // votersJson as any;
+const bonjourInstance = bonjour.default();
 
 export type VoterIdentificationMethod =
   | {
@@ -110,6 +112,14 @@ function buildApi(workspace: Workspace) {
 
       return true; // Successfully checked in and printed receipt
     },
+
+    getAllPeers(): void {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      bonjourInstance.find({ type: 'http' }, (service: any) => {
+        console.log('we found a peer!');
+        console.log(service);
+      });
+    },
   });
 }
 
@@ -120,5 +130,7 @@ export function buildApp(workspace: Workspace): Application {
   const api = buildApi(workspace);
   app.use('/api', grout.buildRouter(api, express));
   app.use(express.static(workspace.assetDirectoryPath));
+
+  bonjourInstance.publish({ name: 'VxPollbook', type: 'http', port: 3002 });
   return app;
 }

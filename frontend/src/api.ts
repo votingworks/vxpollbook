@@ -62,6 +62,17 @@ export const searchVoters = {
   },
 } as const;
 
+export const getAllPeers = {
+  queryKeyPrefix: 'getAllPeers',
+  queryKey(): QueryKey {
+    return [this.queryKeyPrefix];
+  },
+  useQuery() {
+    const apiClient = useApiClient();
+    return useQuery(this.queryKey(), () => apiClient.getAllPeers());
+  },
+} as const;
+
 export const checkInVoter = {
   useMutation() {
     const apiClient = useApiClient();

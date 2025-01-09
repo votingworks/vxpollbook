@@ -17,7 +17,7 @@ import type { Voter, VoterSearchParams } from '@votingworks/pollbook-backend';
 import styled from 'styled-components';
 import { Column, Form, Row, InputGroup } from './layout';
 import { NoNavScreen } from './nav_screen';
-import { searchVoters } from './api';
+import { searchVoters, getAllPeers } from './api';
 
 const VoterTableWrapper = styled(Card)`
   overflow: hidden;
@@ -63,6 +63,10 @@ export function VoterSearchScreen({
     updateDebouncedSearch({ ...search, ...newSearch });
   }
 
+  function onGetPeers() {
+    getAllPeers.useQuery();
+  }
+
   const searchVotersQuery = searchVoters.useQuery(debouncedSearch);
 
   return (
@@ -70,6 +74,7 @@ export function VoterSearchScreen({
       <Main flexColumn>
         <MainHeader>
           <H1>Search Voters</H1>
+          <Button onPress={onGetPeers}>Refresh Peers</Button>
         </MainHeader>
         <MainContent>
           <Column style={{ gap: '1rem', height: '100%', overflowY: 'hidden' }}>

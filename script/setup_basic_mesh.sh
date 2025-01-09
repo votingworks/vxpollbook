@@ -7,9 +7,8 @@ CURRENT_IP=${CURRENT_IP:-192.168.1.1}
 # Check if mesh0 interface already exists, if so reconnect to it instead of creating from scratch.
 if iw dev | grep -q "mesh0"; then
     echo "mesh0 interface already exists. Bringing it up and joining pollbook_mesh."
-    sudo ip link set mesh0 up
+		sleep 1
     sudo iw dev mesh0 mesh join pollbook_mesh
-    sudo ip addr add $CURRENT_IP/24 dev mesh0
     echo "Successfully joined the network."
     exit 0
 fi

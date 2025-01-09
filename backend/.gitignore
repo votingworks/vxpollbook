@@ -8,3 +8,4 @@ debug-dump*.zip
 /*.png
 /*.jpeg
 /*.jpg
+src/voters.json

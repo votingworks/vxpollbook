@@ -1,0 +1,1 @@
+ACTION=="move", SUBSYSTEM=="net", ENV{ID_MODEL}=="802.11_n_WLAN", RUN+="/bin/bash /vx/scripts/setup_basic_mesh.sh"

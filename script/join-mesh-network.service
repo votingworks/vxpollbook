@@ -1,0 +1,9 @@
+[Unit]
+Description=Join mesh network on boot and resume from suspend
+
+[Service]
+Type=oneshot
+ExecStart=sudo /bin/bash /vx/scripts/setup_basic_mesh.sh
+
+[Install]
+WantedBy=multi-user.target sleep.target

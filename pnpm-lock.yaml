@@ -1,9 +1,5 @@
 lockfileVersion: '6.0'
 
-settings:
-  autoInstallPeers: true
-  excludeLinksFromLockfile: false
-
 overrides:
   '@babel/traverse': 7.23.2
   '@types/eslint': 8.4.1
@@ -108,6 +104,9 @@ importers:
       jsbarcode:
         specifier: ^3.11.6
         version: 3.11.6
+      mdns:
+        specifier: ^2.7.2
+        version: 2.7.2
       react:
         specifier: 18.3.1
         version: 18.3.1
@@ -136,6 +135,9 @@ importers:
       '@types/fs-extra':
         specifier: 11.0.1
         version: 11.0.1
+      '@types/mdns':
+        specifier: ^0.0.38
+        version: 0.0.38
       '@types/node':
         specifier: 20.16.0
         version: 20.16.0
@@ -5333,7 +5335,7 @@ packages:
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0
       react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0
-      typescript: 5.6.2
+      typescript: '*'
     peerDependenciesMeta:
       typescript:
         optional: true
@@ -5755,6 +5757,12 @@ packages:
 
   /@types/luxon@3.4.2:
     resolution: {integrity: sha512-TifLZlFudklWlMBfhubvgqTXRzLDI5pCbGa4P8a3wPyUQSW+1xQ5eDsreP9DWHX3tjq1ke96uYG/nwundroWcA==}
+    dev: true
+
+  /@types/mdns@0.0.38:
+    resolution: {integrity: sha512-uiDl+FWeO2JYStfiPsyPpU7bHK3VYETquPo3A8bj6h2+iqDIEfXpaZaLvyGDGL9ilcrGc1vp+ek3Ab+QtDBXPA==}
+    dependencies:
+      '@types/node': 20.16.0
     dev: true
 
   /@types/micromatch@4.0.9:
@@ -7218,6 +7226,10 @@ packages:
     engines: {node: '>=8'}
     requiresBuild: true
 
+  /bindings@1.2.1:
+    resolution: {integrity: sha512-u4cBQNepWxYA55FunZSM7wMi55yQaN0otnhhilNoWHq0MfOfJeQx0v0mRRpolGOExPjZcl6FtB0BB8Xkb88F0g==}
+    dev: false
+
   /bindings@1.5.0:
     resolution: {integrity: sha512-p2q/t/mhvuOj/UeLlV6566GD/guowlr0hHxClI0W9m7MWYkL1F0hLo+0Aexs9HSPCtR1SXQ0TD3MMKrXZajbiQ==}
     dependencies:
@@ -8067,7 +8079,7 @@ packages:
     resolution: {integrity: sha512-kcZ6+W5QzcJ3P1Mt+83OUv/oHFqZHIx8DuxG6eZ5RGMERoLqp4BuGjhHLYGK+Kf5XVkQvqBSmAy/nGWN3qDgEA==}
     engines: {node: '>=14'}
     peerDependencies:
-      typescript: 5.6.2
+      typescript: '>=4.9.5'
     peerDependenciesMeta:
       typescript:
         optional: true
@@ -9309,7 +9321,7 @@ packages:
     resolution: {integrity: sha512-gH3iR3g4JfF+yYPaJYkN7jEl9QbweL/YfkoRlNnuIEHEz1vHVlCmWOS+eGGiRuzHQXdJFCOTxRgvju9b8VUmrw==}
     engines: {node: ^14.18.0 || >=16.0.0}
     peerDependencies:
-      '@types/eslint': 8.4.1
+      '@types/eslint': '>=8.0.0'
       eslint: '>=8.0.0'
       eslint-config-prettier: '*'
       prettier: '>=3.0.0'
@@ -12461,6 +12473,14 @@ packages:
   /mdn-data@2.0.30:
     resolution: {integrity: sha512-GaqWWShW4kv/G9IEucWScBx9G1/vsFZZJUO+tD26M8J8z3Kw5RDQjaoZe03YAClgeS/SWPOcb4nkFBTEi5DUEA==}
     dev: true
+
+  /mdns@2.7.2:
+    resolution: {integrity: sha512-NBOQT22DKvuNWVY7nKNbs6w9eGRyPwnc4ZjKOsCG2G/4wNt1+IyiHvc+5yhcAUZLG46cOY321YW7Ufz3lMtrhw==}
+    requiresBuild: true
+    dependencies:
+      bindings: 1.2.1
+      nan: 2.22.0
+    dev: false
 
   /media-typer@0.3.0:
     resolution: {integrity: sha512-dq+qelQ9akHpcOl/gUVRTxVIOkAJ1wR3QAvb4RsVjS8oVoFjDGTc679wJYmUmknUF5HwMLOgb5O+a3KxfWapPQ==}
@@ -15730,7 +15750,7 @@ packages:
     resolution: {integrity: sha512-i3eMG77UTMD0hZhgRS562pv83RC6ukSAC2GMNWc+9dieh/+jDM5u5YG+NHX6VNDRHQcHwmsTHctP9LhbC3WxVw==}
     engines: {node: '>=16'}
     peerDependencies:
-      typescript: 5.6.2
+      typescript: '>=4.2.0'
     dependencies:
       typescript: 5.6.2
 
@@ -15749,7 +15769,7 @@ packages:
       babel-jest: ^29.0.0
       esbuild: '*'
       jest: ^29.0.0
-      typescript: 5.6.2
+      typescript: '>=4.3 <6'
     peerDependenciesMeta:
       '@babel/core':
         optional: true
@@ -15795,7 +15815,7 @@ packages:
     resolution: {integrity: sha512-mHKK3iUXL+3UF6xL5k0PEhKRUBKPBCv/+RkEOpjRWxxx27KKRBmmA60A9pgOUvMi8GKhRMPEmjBRPzs2W7O1OA==}
     engines: {node: '>= 6'}
     peerDependencies:
-      typescript: 5.6.2
+      typescript: '>=2.8.0 || >= 3.2.0-dev || >= 3.3.0-dev || >= 3.4.0-dev || >= 3.5.0-dev || >= 3.6.0-dev || >= 3.6.0-beta || >= 3.7.0-dev || >= 3.7.0-beta'
     dependencies:
       tslib: 1.14.1
       typescript: 5.6.2
@@ -16879,3 +16899,7 @@ packages:
   /zod@3.23.5:
     resolution: {integrity: sha512-fkwiq0VIQTksNNA131rDOsVJcns0pfVUjHzLrNBiF/O/Xxb5lQyEXkhZWcJ7npWsYlvs+h0jFWXXy4X46Em1JA==}
     dev: false
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false

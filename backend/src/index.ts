@@ -28,7 +28,11 @@ function main(): Promise<number> {
     Logger.from(logger, () => Promise.resolve('system'))
   );
 
-  server.start({ workspace, usbDrive });
+  server.start({
+    workspace,
+    usbDrive,
+    machineId: process.env.VX_MACHINE_ID || 'dev',
+  });
   backupWorker.start({ workspace, usbDrive });
 
   return Promise.resolve(0);

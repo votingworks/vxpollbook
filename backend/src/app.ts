@@ -13,6 +13,8 @@ import {
 import { safeParseJson } from '@votingworks/types';
 import { parse } from 'csv-parse/sync';
 import { setInterval } from 'node:timers/promises';
+import { exec } from 'node:child_process';
+import { createAdvertisement, createBrowser, ServiceType, tcp } from 'mdns';
 import { Workspace } from './workspace';
 import {
   ElectionConfiguration,
@@ -29,10 +31,8 @@ const debug = rootDebug;
 export interface AppContext {
   workspace: Workspace;
   usbDrive: UsbDrive;
+  machineId: string;
 }
-
-// TODO read machine ID from env or network
-const machineId = 'placeholder-machine-id';
 
 const MEGABYTE = 1024 * 1024;
 const MAX_POLLBOOK_PACKAGE_SIZE = 10 * MEGABYTE;
@@ -45,6 +45,10 @@ function toCamelCase(str: string) {
   const first = words.shift();
   const rest = words.map((word) => word[0].toUpperCase() + word.slice(1));
   return [first, ...rest].join('');
+}
+
+function createApiClientForAddress(address: string) {
+  return grout.createClient<Api>({ baseUrl: `${address}/api` });
 }
 
 async function readPollbookPackage(
@@ -128,7 +132,7 @@ function pollUsbDriveForPollbookPackage({ workspace, usbDrive }: AppContext) {
   });
 }
 
-function buildApi({ workspace }: AppContext) {
+function buildApi({ workspace, machineId }: AppContext) {
   const { store } = workspace;
 
   return grout.createApi({
@@ -176,6 +180,10 @@ function buildApi({ workspace }: AppContext) {
         allMachines: store.getCheckInCount(),
       };
     },
+
+    getMachineId(): string {
+      return machineId;
+    },
   });
 }
 
@@ -188,6 +196,52 @@ export function buildApp(context: AppContext): Application {
   app.use(express.static(context.workspace.assetDirectoryPath));
 
   pollUsbDriveForPollbookPackage(context);
+
+  // Publish the service to Avahi
+  const serviceAdvertisment = createAdvertisement(tcp('http'), 3002, {
+    name: `vxpollbook-${context.machineId}`,
+  });
+
+  serviceAdvertisment.start();
+  debug('Published HTTP service to Avahi on port 3002');
+
+  // Discover other HTTP services and call /api/getMachineId
+  const browser = createBrowser(tcp('http'));
+  const discoveredMachines: Record<string, { lastSeen: Date }> = {};
+
+  browser.on('serviceUp', async (service) => {
+    const address = service.addresses[0];
+    debug(`Discovered service at ${address}`);
+    const client = createApiClientForAddress(`http://${address}:3002`);
+    try {
+      const machineId = await client.getMachineId();
+      discoveredMachines[machineId] = { lastSeen: new Date() };
+      debug(`Discovered machineId: ${machineId}`);
+    } catch (error) {
+      debug(`Failed to get machineId from ${address}: ${error}`);
+    }
+  });
+
+  browser.on('serviceDown', (service) => {
+    const address = service.addresses[0];
+    debug(`Service down at ${address}`);
+  });
+
+  browser.start();
+  debug('Started Avahi service discovery');
+
+  // Polling interval to update lastSeen times
+  process.nextTick(() => {
+    const now = new Date();
+    for (const [machineId, { lastSeen }] of Object.entries(
+      discoveredMachines
+    )) {
+      if (now.getTime() - lastSeen.getTime() > 60000) {
+        delete discoveredMachines[machineId];
+        debug(`Removed machineId ${machineId} due to timeout`);
+      }
+    }
+  });
 
   return app;
 }

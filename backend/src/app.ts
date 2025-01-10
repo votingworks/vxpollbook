@@ -7,13 +7,18 @@ import { join } from 'node:path';
 import {
   getEntries,
   getFileByName,
+  isElectionManagerAuth,
   openZip,
   readTextEntry,
 } from '@votingworks/utils';
-import { safeParseJson } from '@votingworks/types';
+import { DEFAULT_SYSTEM_SETTINGS, safeParseJson } from '@votingworks/types';
 import { parse } from 'csv-parse/sync';
 import { setInterval } from 'node:timers/promises';
 import { exec } from 'node:child_process';
+import {
+  DippedSmartCardAuthApi,
+  DippedSmartCardAuthMachineState,
+} from '@votingworks/auth';
 import { Workspace } from './workspace';
 import {
   ElectionConfiguration,
@@ -34,6 +39,7 @@ import {
 const debug = rootDebug;
 
 export interface AppContext {
+  auth: DippedSmartCardAuthApi;
   workspace: Workspace;
   usbDrive: UsbDrive;
   machineId: string;
@@ -57,6 +63,16 @@ function createApiClientForAddress(address: string): grout.Client<Api> {
     baseUrl: `${address}/api`,
     timeout: NETWORK_REQUEST_TIMEOUT,
   });
+}
+
+function constructAuthMachineState(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _workspace: Workspace
+): DippedSmartCardAuthMachineState {
+  return {
+    ...DEFAULT_SYSTEM_SETTINGS['auth'],
+    electionKey: undefined,
+  };
 }
 
 async function readPollbookPackage(
@@ -94,7 +110,11 @@ async function readPollbookPackage(
 type ConfigurationStatus = 'loading' | 'not-found';
 let configurationStatus: ConfigurationStatus | undefined;
 
-function pollUsbDriveForPollbookPackage({ workspace, usbDrive }: AppContext) {
+function pollUsbDriveForPollbookPackage({
+  auth,
+  workspace,
+  usbDrive,
+}: AppContext) {
   debug('Polling USB drive for pollbook package');
   if (workspace.store.getElectionConfiguration()) {
     return;
@@ -103,39 +123,49 @@ function pollUsbDriveForPollbookPackage({ workspace, usbDrive }: AppContext) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     for await (const _ of setInterval(100)) {
       const usbDriveStatus = await usbDrive.status();
-      if (usbDriveStatus.status === 'mounted') {
-        debug('Found USB drive mounted at %s', usbDriveStatus.mountPoint);
-        configurationStatus = 'loading';
-        const pollbookPackageResult = await readPollbookPackage(
-          join(usbDriveStatus.mountPoint, 'pollbook-package.zip')
-        );
-        if (pollbookPackageResult.isErr()) {
-          const result = pollbookPackageResult.err();
-          debug('Read pollbook package error: %O', result);
-          if (
-            result.type === 'OpenFileError' &&
-            'code' in result.error &&
-            result.error.code === 'ENOENT'
-          ) {
-            configurationStatus = 'not-found';
-          } else {
-            throw result;
-          }
-          configurationStatus = 'not-found';
-          continue;
-        }
-        const pollbookPackage = pollbookPackageResult.ok();
-        workspace.store.setElectionAndVoters(
-          pollbookPackage.election,
-          pollbookPackage.voters
-        );
-        configurationStatus = undefined;
-        debug('Configured with pollbook package: %O', {
-          election: pollbookPackage.election,
-          voters: pollbookPackage.voters.length,
-        });
-        break;
+      if (usbDriveStatus.status !== 'mounted') {
+        continue;
       }
+      debug('Found USB drive mounted at %s', usbDriveStatus.mountPoint);
+
+      const authStatus = await auth.getAuthStatus(
+        constructAuthMachineState(workspace)
+      );
+      if (!isElectionManagerAuth(authStatus)) {
+        debug('Not logged in as election manager, not configuring');
+        continue;
+      }
+
+      configurationStatus = 'loading';
+      const pollbookPackageResult = await readPollbookPackage(
+        join(usbDriveStatus.mountPoint, 'pollbook-package.zip')
+      );
+      if (pollbookPackageResult.isErr()) {
+        const result = pollbookPackageResult.err();
+        debug('Read pollbook package error: %O', result);
+        if (
+          result.type === 'OpenFileError' &&
+          'code' in result.error &&
+          result.error.code === 'ENOENT'
+        ) {
+          configurationStatus = 'not-found';
+        } else {
+          throw result;
+        }
+        configurationStatus = 'not-found';
+        continue;
+      }
+      const pollbookPackage = pollbookPackageResult.ok();
+      workspace.store.setElectionAndVoters(
+        pollbookPackage.election,
+        pollbookPackage.voters
+      );
+      configurationStatus = undefined;
+      debug('Configured with pollbook package: %O', {
+        election: pollbookPackage.election,
+        voters: pollbookPackage.voters.length,
+      });
+      break;
     }
   });
 }
@@ -195,10 +225,29 @@ async function setupMachineNetworking({
   });
 }
 
-function buildApi({ workspace, machineId }: AppContext) {
+function buildApi({ auth, workspace, machineId }: AppContext) {
   const { store } = workspace;
 
   return grout.createApi({
+    getAuthStatus() {
+      return auth.getAuthStatus(constructAuthMachineState(workspace));
+    },
+
+    checkPin(input: { pin: string }) {
+      return auth.checkPin(constructAuthMachineState(workspace), input);
+    },
+
+    logOut() {
+      return auth.logOut(constructAuthMachineState(workspace));
+    },
+
+    updateSessionExpiry(input: { sessionExpiresAt: Date }) {
+      return auth.updateSessionExpiry(
+        constructAuthMachineState(workspace),
+        input
+      );
+    },
+
     getElectionConfiguration(): Result<
       ElectionConfiguration,
       'unconfigured' | ConfigurationStatus
@@ -256,7 +305,6 @@ export function buildApp(context: AppContext): Application {
   const app: Application = express();
   const api = buildApi(context);
   app.use('/api', grout.buildRouter(api, express));
-  app.use(express.static(context.workspace.assetDirectoryPath));
 
   pollUsbDriveForPollbookPackage(context);
 

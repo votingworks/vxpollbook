@@ -47,6 +47,9 @@ importers:
 
   backend:
     dependencies:
+      '@votingworks/auth':
+        specifier: workspace:*
+        version: link:../libs/auth
       '@votingworks/backend':
         specifier: workspace:*
         version: link:../libs/backend
@@ -56,6 +59,9 @@ importers:
       '@votingworks/db':
         specifier: workspace:*
         version: link:../libs/db
+      '@votingworks/dev-dock-backend':
+        specifier: workspace:*
+        version: link:../libs/dev-dock/backend
       '@votingworks/fs':
         specifier: workspace:*
         version: link:../libs/fs
@@ -183,6 +189,9 @@ importers:
       '@votingworks/basics':
         specifier: workspace:*
         version: link:../libs/basics
+      '@votingworks/dev-dock-frontend':
+        specifier: workspace:*
+        version: link:../libs/dev-dock/frontend
       '@votingworks/grout':
         specifier: workspace:*
         version: link:../libs/grout
@@ -468,7 +477,7 @@ importers:
         version: 1.57.0
       vitest:
         specifier: ^2.1.8
-        version: 2.1.8(@types/node@20.16.0)
+        version: 2.1.8
       wait-for-expect:
         specifier: ^3.0.2
         version: 3.0.2
@@ -680,7 +689,7 @@ importers:
         version: 1.57.0
       vitest:
         specifier: ^2.1.8
-        version: 2.1.8(@types/node@20.16.0)
+        version: 2.1.8(@types/node@20.16.0)(jsdom@20.0.1)
 
   libs/basics:
     dependencies:
@@ -717,7 +726,7 @@ importers:
         version: 1.57.0
       vitest:
         specifier: ^2.1.8
-        version: 2.1.8(@types/node@20.16.0)
+        version: 2.1.8(@types/node@20.16.0)(jsdom@20.0.1)
 
   libs/db:
     dependencies:
@@ -760,7 +769,183 @@ importers:
         version: 0.2.3
       vitest:
         specifier: ^2.1.8
-        version: 2.1.8(@types/node@20.16.0)
+        version: 2.1.8(@types/node@20.16.0)(jsdom@20.0.1)
+
+  libs/dev-dock/backend:
+    dependencies:
+      '@votingworks/auth':
+        specifier: workspace:*
+        version: link:../../auth
+      '@votingworks/basics':
+        specifier: workspace:*
+        version: link:../../basics
+      '@votingworks/fs':
+        specifier: workspace:*
+        version: link:../../fs
+      '@votingworks/fujitsu-thermal-printer':
+        specifier: workspace:*
+        version: link:../../fujitsu-thermal-printer
+      '@votingworks/grout':
+        specifier: workspace:*
+        version: link:../../grout
+      '@votingworks/image-utils':
+        specifier: workspace:*
+        version: link:../../image-utils
+      '@votingworks/pdi-scanner':
+        specifier: workspace:*
+        version: link:../../pdi-scanner
+      '@votingworks/printing':
+        specifier: workspace:*
+        version: link:../../printing
+      '@votingworks/types':
+        specifier: workspace:*
+        version: link:../../types
+      '@votingworks/usb-drive':
+        specifier: workspace:*
+        version: link:../../usb-drive
+      '@votingworks/utils':
+        specifier: workspace:*
+        version: link:../../utils
+    devDependencies:
+      '@types/express':
+        specifier: 4.17.14
+        version: 4.17.14
+      '@types/node':
+        specifier: 20.16.0
+        version: 20.16.0
+      '@vitest/coverage-istanbul':
+        specifier: ^2.1.8
+        version: 2.1.8(vitest@2.1.8)
+      '@votingworks/fixtures':
+        specifier: workspace:*
+        version: link:../../fixtures
+      '@votingworks/test-utils':
+        specifier: workspace:*
+        version: link:../../test-utils
+      eslint-plugin-vx:
+        specifier: workspace:*
+        version: link:../../eslint-plugin-vx
+      express:
+        specifier: 4.18.2
+        version: 4.18.2
+      fast-check:
+        specifier: 2.23.2
+        version: 2.23.2
+      is-ci-cli:
+        specifier: 2.2.0
+        version: 2.2.0
+      lint-staged:
+        specifier: 11.0.0
+        version: 11.0.0
+      sort-package-json:
+        specifier: ^1.50.0
+        version: 1.57.0
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.8(@types/node@20.16.0)(jsdom@20.0.1)
+
+  libs/dev-dock/frontend:
+    dependencies:
+      '@fortawesome/free-solid-svg-icons':
+        specifier: ^6.2.1
+        version: 6.7.2
+      '@fortawesome/react-fontawesome':
+        specifier: ^0.2.0
+        version: 0.2.2(@fortawesome/fontawesome-svg-core@6.7.2)(react@18.3.1)
+      '@tanstack/react-query-devtools':
+        specifier: 4.32.1
+        version: 4.32.1(@tanstack/react-query@4.32.1)(react-dom@18.3.1)(react@18.3.1)
+      '@votingworks/basics':
+        specifier: workspace:*
+        version: link:../../basics
+      '@votingworks/dev-dock-backend':
+        specifier: workspace:*
+        version: link:../backend
+      '@votingworks/grout':
+        specifier: workspace:*
+        version: link:../../grout
+      '@votingworks/types':
+        specifier: workspace:*
+        version: link:../../types
+      '@votingworks/utils':
+        specifier: workspace:*
+        version: link:../../utils
+    devDependencies:
+      '@tanstack/react-query':
+        specifier: 4.32.1
+        version: 4.32.1(react-dom@18.3.1)(react@18.3.1)
+      '@testing-library/jest-dom':
+        specifier: ^5.17.0
+        version: 5.17.0
+      '@testing-library/react':
+        specifier: ^15.0.7
+        version: 15.0.7(@types/react@18.3.3)(react-dom@18.3.1)(react@18.3.1)
+      '@testing-library/user-event':
+        specifier: ^13.5.0
+        version: 13.5.0(@testing-library/dom@10.4.0)
+      '@types/express':
+        specifier: 4.17.14
+        version: 4.17.14
+      '@types/jest':
+        specifier: ^29.5.3
+        version: 29.5.14
+      '@types/kiosk-browser':
+        specifier: workspace:*
+        version: link:../../@types/kiosk-browser
+      '@types/node':
+        specifier: 20.16.0
+        version: 20.16.0
+      '@types/react':
+        specifier: 18.3.3
+        version: 18.3.3
+      '@types/styled-components':
+        specifier: ^5.1.26
+        version: 5.1.34
+      '@types/testing-library__jest-dom':
+        specifier: ^5.14.9
+        version: 5.14.9
+      '@vitest/coverage-istanbul':
+        specifier: ^2.1.8
+        version: 2.1.8(vitest@2.1.8)
+      '@votingworks/auth':
+        specifier: workspace:*
+        version: link:../../auth
+      '@votingworks/fujitsu-thermal-printer':
+        specifier: workspace:*
+        version: link:../../fujitsu-thermal-printer
+      '@votingworks/grout-test-utils':
+        specifier: workspace:*
+        version: link:../../grout/test-utils
+      '@votingworks/test-utils':
+        specifier: workspace:*
+        version: link:../../test-utils
+      eslint-plugin-vx:
+        specifier: workspace:*
+        version: link:../../eslint-plugin-vx
+      fast-check:
+        specifier: 2.23.2
+        version: 2.23.2
+      is-ci-cli:
+        specifier: 2.2.0
+        version: 2.2.0
+      jsdom:
+        specifier: 20.0.1
+        version: 20.0.1
+      lint-staged:
+        specifier: 11.0.0
+        version: 11.0.0
+      react:
+        specifier: 18.3.1
+        version: 18.3.1
+      sort-package-json:
+        specifier: ^1.50.0
+        version: 1.57.0
+      styled-components:
+        specifier: ^5.3.11
+        version: 5.3.11(@babel/core@7.26.0)(react-dom@18.3.1)(react-is@18.3.1)(react@18.3.1)
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.8(@types/node@20.16.0)(jsdom@20.0.1)
 
   libs/eslint-plugin-vx:
     dependencies:
@@ -876,7 +1061,7 @@ importers:
         version: 1.57.0
       vitest:
         specifier: ^2.1.8
-        version: 2.1.8(@types/node@20.16.0)
+        version: 2.1.8(@types/node@20.16.0)(jsdom@20.0.1)
 
   libs/fs:
     dependencies:
@@ -946,7 +1131,74 @@ importers:
         version: 0.2.3
       vitest:
         specifier: ^2.1.8
-        version: 2.1.8(@types/node@20.16.0)
+        version: 2.1.8(@types/node@20.16.0)(jsdom@20.0.1)
+
+  libs/fujitsu-thermal-printer:
+    dependencies:
+      '@votingworks/basics':
+        specifier: workspace:*
+        version: link:../basics
+      '@votingworks/image-utils':
+        specifier: workspace:*
+        version: link:../image-utils
+      '@votingworks/logging':
+        specifier: workspace:*
+        version: link:../logging
+      '@votingworks/message-coder':
+        specifier: workspace:*
+        version: link:../message-coder
+      '@votingworks/types':
+        specifier: workspace:*
+        version: link:../types
+      '@votingworks/utils':
+        specifier: workspace:*
+        version: link:../utils
+      buffer:
+        specifier: ^6.0.3
+        version: 6.0.3
+      debug:
+        specifier: 4.3.4
+        version: 4.3.4(supports-color@5.5.0)
+      tmp-promise:
+        specifier: ^3.0.3
+        version: 3.0.3
+      usb:
+        specifier: ^2.6.0
+        version: 2.14.0
+    devDependencies:
+      '@types/debug':
+        specifier: 4.1.8
+        version: 4.1.8
+      '@types/jest':
+        specifier: ^29.5.3
+        version: 29.5.14
+      '@types/node':
+        specifier: 20.16.0
+        version: 20.16.0
+      esbuild:
+        specifier: 0.21.2
+        version: 0.21.2
+      esbuild-runner:
+        specifier: 2.2.2
+        version: 2.2.2(esbuild@0.21.2)
+      eslint-plugin-vx:
+        specifier: workspace:*
+        version: link:../eslint-plugin-vx
+      is-ci-cli:
+        specifier: 2.2.0
+        version: 2.2.0
+      jest:
+        specifier: ^29.6.2
+        version: 29.7.0(@types/node@20.16.0)
+      jest-junit:
+        specifier: ^16.0.0
+        version: 16.0.0
+      jest-watch-typeahead:
+        specifier: ^2.2.2
+        version: 2.2.2(jest@29.7.0)
+      ts-jest:
+        specifier: 29.1.1
+        version: 29.1.1(@babel/core@7.26.0)(esbuild@0.21.2)(jest@29.7.0)(typescript@5.6.2)
 
   libs/grout:
     dependencies:
@@ -998,7 +1250,7 @@ importers:
         version: 1.57.0
       vitest:
         specifier: ^2.1.8
-        version: 2.1.8(@types/node@20.16.0)
+        version: 2.1.8
 
   libs/grout/test-utils:
     dependencies:
@@ -1029,7 +1281,7 @@ importers:
         version: 1.57.0
       vitest:
         specifier: ^2.1.8
-        version: 2.1.8(@types/node@20.16.0)
+        version: 2.1.8
 
   libs/image-utils:
     dependencies:
@@ -1105,7 +1357,7 @@ importers:
         version: 11.0.0
       vitest:
         specifier: ^2.1.8
-        version: 2.1.8(@types/node@20.16.0)
+        version: 2.1.8(@types/node@20.16.0)(jsdom@20.0.1)
 
   libs/logging:
     dependencies:
@@ -1181,7 +1433,7 @@ importers:
         version: 1.57.0
       vitest:
         specifier: ^2.1.8
-        version: 2.1.8(@types/node@20.16.0)
+        version: 2.1.8(@types/node@20.16.0)(jsdom@20.0.1)
 
   libs/message-coder:
     dependencies:
@@ -1206,7 +1458,7 @@ importers:
         version: 2.2.0
       vitest:
         specifier: ^2.1.8
-        version: 2.1.8(@types/node@20.16.0)
+        version: 2.1.8(@types/node@20.16.0)(jsdom@20.0.1)
 
   libs/monorepo-utils:
     dependencies:
@@ -1270,7 +1522,62 @@ importers:
         version: 5.6.2
       vitest:
         specifier: ^2.1.8
-        version: 2.1.8(@types/node@20.16.0)
+        version: 2.1.8(@types/node@20.16.0)(jsdom@20.0.1)
+
+  libs/pdi-scanner:
+    dependencies:
+      '@votingworks/basics':
+        specifier: workspace:*
+        version: link:../basics
+      '@votingworks/image-utils':
+        specifier: workspace:*
+        version: link:../image-utils
+      '@votingworks/types':
+        specifier: workspace:*
+        version: link:../types
+      debug:
+        specifier: 4.3.4
+        version: 4.3.4(supports-color@5.5.0)
+      xstate:
+        specifier: ^4.33.0
+        version: 4.38.3
+      zod:
+        specifier: 3.23.5
+        version: 3.23.5
+    devDependencies:
+      '@types/debug':
+        specifier: 4.1.8
+        version: 4.1.8
+      '@types/jest':
+        specifier: ^29.5.3
+        version: 29.5.14
+      '@types/node':
+        specifier: 20.16.0
+        version: 20.16.0
+      '@votingworks/test-utils':
+        specifier: workspace:*
+        version: link:../test-utils
+      esbuild-runner:
+        specifier: 2.2.2
+        version: 2.2.2(esbuild@0.21.2)
+      eslint-plugin-vx:
+        specifier: workspace:*
+        version: link:../eslint-plugin-vx
+      is-ci-cli:
+        specifier: 2.2.0
+        version: 2.2.0
+      jest:
+        specifier: ^29.6.2
+        version: 29.7.0(@types/node@20.16.0)
+      jest-junit:
+        specifier: ^16.0.0
+        version: 16.0.0
+      jest-watch-typeahead:
+        specifier: ^2.2.2
+        version: 2.2.2(jest@29.7.0)
+      ts-jest:
+        specifier: 29.1.1
+        version: 29.1.1(@babel/core@7.26.0)(esbuild@0.21.2)(jest@29.7.0)(typescript@5.6.2)
 
   libs/printing:
     dependencies:
@@ -1455,7 +1762,7 @@ importers:
         version: 1.57.0
       vitest:
         specifier: ^2.1.8
-        version: 2.1.8(@types/node@20.16.0)
+        version: 2.1.8(@types/node@20.16.0)(jsdom@20.0.1)
 
   libs/types:
     dependencies:
@@ -1990,7 +2297,7 @@ importers:
         version: 1.57.0
       vitest:
         specifier: ^2.1.8
-        version: 2.1.8(@types/node@20.16.0)
+        version: 2.1.8(@types/node@20.16.0)(jsdom@20.0.1)
 
   script:
     dependencies:
@@ -5391,8 +5698,30 @@ packages:
       file-system-cache: 2.3.0
     dev: true
 
+  /@tanstack/match-sorter-utils@8.19.4:
+    resolution: {integrity: sha512-Wo1iKt2b9OT7d+YGhvEPD3DXvPv2etTusIMhMUoG7fbhmxcXCtIjJDEygy91Y2JFlwGyjqiBPRozme7UD8hoqg==}
+    engines: {node: '>=12'}
+    dependencies:
+      remove-accents: 0.5.0
+    dev: false
+
   /@tanstack/query-core@4.32.1:
     resolution: {integrity: sha512-VEAGHboOFWN/bvf/7cCoeLQfld0AA8n0V/kfc77W+FvxnnSwJufEh6gfjqpX5bRE/DEYfYDYdNtuL3KM+lIs8Q==}
+
+  /@tanstack/react-query-devtools@4.32.1(@tanstack/react-query@4.32.1)(react-dom@18.3.1)(react@18.3.1):
+    resolution: {integrity: sha512-/ZgxCfGXLIXUvaIRzrNCP+C4iv1bIleNzXCjGKFZ4qKEifnv5A/SpWE2dG4SBjqXVlIkMAP82lesfoHcsOm+zg==}
+    peerDependencies:
+      '@tanstack/react-query': 4.32.1
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0
+      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0
+    dependencies:
+      '@tanstack/match-sorter-utils': 8.19.4
+      '@tanstack/react-query': 4.32.1(react-dom@18.3.1)(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+      superjson: 1.13.3
+      use-sync-external-store: 1.4.0(react@18.3.1)
+    dev: false
 
   /@tanstack/react-query@4.32.1(react-dom@18.3.1)(react@18.3.1):
     resolution: {integrity: sha512-lPTfOq6bR6DorPaS018gTMd3zs8r06tlERiVY6BRP9SnDkkl4ckqeANava/jPLWrSZP+EA15loQUTmvZs6k2GA==}
@@ -6296,7 +6625,7 @@ packages:
       magicast: 0.3.5
       test-exclude: 7.0.1
       tinyrainbow: 1.2.0
-      vitest: 2.1.8(@types/node@20.16.0)
+      vitest: 2.1.8
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -8020,6 +8349,13 @@ packages:
   /cookie@0.5.0:
     resolution: {integrity: sha512-YZ3GUyn/o8gfKJlnlX7g7xq4gyO6OSuhGPKaaGssGB2qgDUS0gPgtTvoyZLTt9Ab6dC4hfc9dV5arkvc/OCmrw==}
     engines: {node: '>= 0.6'}
+
+  /copy-anything@3.0.5:
+    resolution: {integrity: sha512-yCEafptTtb4bk7GLEQoM8KVJpxAfdBJYaXyzQEgQQQgYrZiDp8SJmGKlYza6CYjEDNstAdNdKA3UuoULlEbS6w==}
+    engines: {node: '>=12.13'}
+    dependencies:
+      is-what: 4.1.16
+    dev: false
 
   /copy-concurrently@1.0.5:
     resolution: {integrity: sha512-f2domd9fsVDFtaFcbaRZuYXwtdmnzqbADSwhSWYxYB/Q8zsdUUFMXVRwXGDMWmbEzAn1kdRrtI1T/KTFOL4X2A==}
@@ -11274,6 +11610,11 @@ packages:
       call-bound: 1.0.3
       get-intrinsic: 1.2.6
 
+  /is-what@4.1.16:
+    resolution: {integrity: sha512-ZhMwEosbFJkA0YhFnNDgTM4ZxDRsS6HqTo7qsZM08fehyRYIYa0yHu5R6mgo1n/8MgaPBXiPimPD77baVFYg+A==}
+    engines: {node: '>=12.13'}
+    dev: false
+
   /is-whitespace@0.3.0:
     resolution: {integrity: sha512-RydPhl4S6JwAyj0JJjshWJEFG6hNye3pZFBRZaTUfZFwGHxzppNaNOVgQuS/E/SlhrApuMXrpnK1EEIXfdo3Dg==}
     engines: {node: '>=0.10.0'}
@@ -11936,6 +12277,47 @@ packages:
       write-file-atomic: 2.4.3
     transitivePeerDependencies:
       - supports-color
+    dev: true
+
+  /jsdom@20.0.1:
+    resolution: {integrity: sha512-pksjj7Rqoa+wdpkKcLzQRHhJCEE42qQhl/xLMUKHgoSejaKOdaXEAnqs6uDNwMl/fciHTzKeR8Wm8cw7N+g98A==}
+    engines: {node: '>=14'}
+    peerDependencies:
+      canvas: ^2.5.0
+    peerDependenciesMeta:
+      canvas:
+        optional: true
+    dependencies:
+      abab: 2.0.6
+      acorn: 8.14.0
+      acorn-globals: 7.0.1
+      cssom: 0.5.0
+      cssstyle: 2.3.0
+      data-urls: 3.0.2
+      decimal.js: 10.4.3
+      domexception: 4.0.0
+      escodegen: 2.1.0
+      form-data: 4.0.1
+      html-encoding-sniffer: 3.0.0
+      http-proxy-agent: 5.0.0
+      https-proxy-agent: 5.0.1
+      is-potential-custom-element-name: 1.0.1
+      nwsapi: 2.2.16
+      parse5: 7.2.1
+      saxes: 6.0.0
+      symbol-tree: 3.2.4
+      tough-cookie: 4.1.4
+      w3c-xmlserializer: 3.0.0
+      webidl-conversions: 7.0.0
+      whatwg-encoding: 2.0.0
+      whatwg-mimetype: 3.0.0
+      whatwg-url: 11.0.0
+      ws: 8.18.0
+      xml-name-validator: 4.0.0
+    transitivePeerDependencies:
+      - bufferutil
+      - supports-color
+      - utf-8-validate
     dev: true
 
   /jsdom@20.0.3:
@@ -14261,6 +14643,10 @@ packages:
       esm: 3.2.25
     dev: true
 
+  /remove-accents@0.5.0:
+    resolution: {integrity: sha512-8g3/Otx1eJaVD12e31UbJj1YzdtVvzH85HV7t+9MJYk/u3XmkOUJ5Ys9wQrf9PCPK8+xn4ymzqYCiZl6QWKn+A==}
+    dev: false
+
   /remove-bom-buffer@3.0.0:
     resolution: {integrity: sha512-8v2rWhaakv18qcvNeli2mZ/TMTL2nEyAKRvzo1WtnZBl15SHyEhrCu2/xKlJyUFKHiHgfXIyuY6g2dObJJycXQ==}
     engines: {node: '>=0.10.0'}
@@ -15344,6 +15730,13 @@ packages:
     resolution: {integrity: sha512-Orov6g6BB1sDfYgzWfTHDOxamtX1bE/zo104Dh9e6fqJ3PooipYyfJ0pUmrZO2wAvO8YbEyeFrkV91XTsGMSrw==}
     dev: false
 
+  /superjson@1.13.3:
+    resolution: {integrity: sha512-mJiVjfd2vokfDxsQPOwJ/PtanO87LhpYY88ubI5dUB1Ab58Txbyje3+jpm+/83R/fevaq/107NNhtYBLuoTrFg==}
+    engines: {node: '>=10'}
+    dependencies:
+      copy-anything: 3.0.5
+    dev: false
+
   /supports-color@5.5.0:
     resolution: {integrity: sha512-QjVjwdXIt408MIiAqCX4oUKsgU2EqAGzs2Ppkm4aQYbjm+ZEWEcW4SfFNTr4uMNZma0ey4f5lgLrkB0aX0QMow==}
     engines: {node: '>=4'}
@@ -16358,7 +16751,64 @@ packages:
       fsevents: 2.3.3
     dev: true
 
-  /vitest@2.1.8(@types/node@20.16.0):
+  /vitest@2.1.8:
+    resolution: {integrity: sha512-1vBKTZskHw/aosXqQUlVWWlGUxSJR8YtiyZDJAFeW2kPAeX6S3Sool0mjspO+kXLuxVWlEDDowBAeqeAQefqLQ==}
+    engines: {node: ^18.0.0 || >=20.0.0}
+    hasBin: true
+    peerDependencies:
+      '@edge-runtime/vm': '*'
+      '@types/node': ^18.0.0 || >=20.0.0
+      '@vitest/browser': 2.1.8
+      '@vitest/ui': 2.1.8
+      happy-dom: '*'
+      jsdom: '*'
+    peerDependenciesMeta:
+      '@edge-runtime/vm':
+        optional: true
+      '@types/node':
+        optional: true
+      '@vitest/browser':
+        optional: true
+      '@vitest/ui':
+        optional: true
+      happy-dom:
+        optional: true
+      jsdom:
+        optional: true
+    dependencies:
+      '@vitest/expect': 2.1.8
+      '@vitest/mocker': 2.1.8(vite@5.4.11)
+      '@vitest/pretty-format': 2.1.8
+      '@vitest/runner': 2.1.8
+      '@vitest/snapshot': 2.1.8
+      '@vitest/spy': 2.1.8
+      '@vitest/utils': 2.1.8
+      chai: 5.1.2
+      debug: 4.4.0
+      expect-type: 1.1.0
+      magic-string: 0.30.17
+      pathe: 1.1.2
+      std-env: 3.8.0
+      tinybench: 2.9.0
+      tinyexec: 0.3.1
+      tinypool: 1.0.2
+      tinyrainbow: 1.2.0
+      vite: 5.4.11(@types/node@20.16.0)
+      vite-node: 2.1.8(@types/node@20.16.0)
+      why-is-node-running: 2.3.0
+    transitivePeerDependencies:
+      - less
+      - lightningcss
+      - msw
+      - sass
+      - sass-embedded
+      - stylus
+      - sugarss
+      - supports-color
+      - terser
+    dev: true
+
+  /vitest@2.1.8(@types/node@20.16.0)(jsdom@20.0.1):
     resolution: {integrity: sha512-1vBKTZskHw/aosXqQUlVWWlGUxSJR8YtiyZDJAFeW2kPAeX6S3Sool0mjspO+kXLuxVWlEDDowBAeqeAQefqLQ==}
     engines: {node: ^18.0.0 || >=20.0.0}
     hasBin: true
@@ -16394,6 +16844,7 @@ packages:
       chai: 5.1.2
       debug: 4.4.0
       expect-type: 1.1.0
+      jsdom: 20.0.1
       magic-string: 0.30.17
       pathe: 1.1.2
       std-env: 3.8.0
@@ -16430,6 +16881,13 @@ packages:
       de-indent: 1.0.2
       he: 1.2.0
     dev: false
+
+  /w3c-xmlserializer@3.0.0:
+    resolution: {integrity: sha512-3WFqGEgSXIyGhOmAFtlicJNMjEps8b1MG31NCA0/vOF9+nKMUW1ckhi9cnNHmf88Rzw5V+dwIwsm2C7X8k9aQg==}
+    engines: {node: '>=12'}
+    dependencies:
+      xml-name-validator: 4.0.0
+    dev: true
 
   /w3c-xmlserializer@4.0.0:
     resolution: {integrity: sha512-d+BFHzbiCx6zGfz0HyQ6Rg69w9k19nviJspaj4yNscGjrHu94sVP+aRm75yEbCh+r2/yR+7q6hux9LVtbuTGBw==}
@@ -16807,6 +17265,10 @@ packages:
   /xmlchars@2.2.0:
     resolution: {integrity: sha512-JZnDKK8B0RCDw84FNdDAIpZK+JuJw+s7Lz8nksI7SIuU3UXJJslUthsi+uWBUYOwPFwW7W7PRLRfUKpxjtjFCw==}
     dev: true
+
+  /xstate@4.38.3:
+    resolution: {integrity: sha512-SH7nAaaPQx57dx6qvfcIgqKRXIh4L0A1iYEqim4s1u7c9VoCgzZc+63FY90AKU4ZzOC2cfJzTnpO4zK7fCUzzw==}
+    dev: false
 
   /xtend@4.0.2:
     resolution: {integrity: sha512-LKYU1iAXJXUgAXn9URjiu+MWhyUXHsvfp7mcuYm9dSUKK0/CjtrUwFAxD82/mCWbtLsGjFIad0wIsod4zrTAEQ==}

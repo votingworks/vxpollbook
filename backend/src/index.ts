@@ -8,6 +8,7 @@ import { WORKSPACE } from './globals';
 import * as server from './server';
 import * as backupWorker from './backup_worker';
 import { createWorkspace } from './workspace';
+import { AvahiService } from './avahi';
 
 export type { Api } from './app';
 export * from './types';
@@ -36,6 +37,19 @@ function main(): Promise<number> {
   backupWorker.start({ workspace, usbDrive });
 
   return Promise.resolve(0);
+}
+
+// Ensure the running process is killed when the server is killed
+process.on('exit', () => {
+  AvahiService.cleanup();
+});
+
+// Optionally handle other termination signals
+for (const signal of ['SIGINT', 'SIGTERM']) {
+  process.on(signal, () => {
+    AvahiService.cleanup();
+    process.exit();
+  });
 }
 
 if (require.main === module) {

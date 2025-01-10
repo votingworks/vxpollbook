@@ -104,9 +104,9 @@ importers:
       jsbarcode:
         specifier: ^3.11.6
         version: 3.11.6
-      mdns:
-        specifier: ^2.7.2
-        version: 2.7.2
+      node-fetch:
+        specifier: ^2.6.0
+        version: 2.7.0
       react:
         specifier: 18.3.1
         version: 18.3.1
@@ -135,9 +135,6 @@ importers:
       '@types/fs-extra':
         specifier: 11.0.1
         version: 11.0.1
-      '@types/mdns':
-        specifier: ^0.0.38
-        version: 0.0.38
       '@types/node':
         specifier: 20.16.0
         version: 20.16.0
@@ -5759,12 +5756,6 @@ packages:
     resolution: {integrity: sha512-TifLZlFudklWlMBfhubvgqTXRzLDI5pCbGa4P8a3wPyUQSW+1xQ5eDsreP9DWHX3tjq1ke96uYG/nwundroWcA==}
     dev: true
 
-  /@types/mdns@0.0.38:
-    resolution: {integrity: sha512-uiDl+FWeO2JYStfiPsyPpU7bHK3VYETquPo3A8bj6h2+iqDIEfXpaZaLvyGDGL9ilcrGc1vp+ek3Ab+QtDBXPA==}
-    dependencies:
-      '@types/node': 20.16.0
-    dev: true
-
   /@types/micromatch@4.0.9:
     resolution: {integrity: sha512-7V+8ncr22h4UoYRLnLXSpTxjQrNUXtWHGeMPRJt1nULXI57G9bIcpyrHlmrQ7QK24EyyuXvYcSSWAM8GA9nqCg==}
     dependencies:
@@ -7225,10 +7216,6 @@ packages:
     resolution: {integrity: sha512-Ceh+7ox5qe7LJuLHoY0feh3pHuUDHAcRUeyL2VYghZwfpkNIy/+8Ocg0a3UuSoYzavmylwuLWQOf3hl0jjMMIw==}
     engines: {node: '>=8'}
     requiresBuild: true
-
-  /bindings@1.2.1:
-    resolution: {integrity: sha512-u4cBQNepWxYA55FunZSM7wMi55yQaN0otnhhilNoWHq0MfOfJeQx0v0mRRpolGOExPjZcl6FtB0BB8Xkb88F0g==}
-    dev: false
 
   /bindings@1.5.0:
     resolution: {integrity: sha512-p2q/t/mhvuOj/UeLlV6566GD/guowlr0hHxClI0W9m7MWYkL1F0hLo+0Aexs9HSPCtR1SXQ0TD3MMKrXZajbiQ==}
@@ -12473,14 +12460,6 @@ packages:
   /mdn-data@2.0.30:
     resolution: {integrity: sha512-GaqWWShW4kv/G9IEucWScBx9G1/vsFZZJUO+tD26M8J8z3Kw5RDQjaoZe03YAClgeS/SWPOcb4nkFBTEi5DUEA==}
     dev: true
-
-  /mdns@2.7.2:
-    resolution: {integrity: sha512-NBOQT22DKvuNWVY7nKNbs6w9eGRyPwnc4ZjKOsCG2G/4wNt1+IyiHvc+5yhcAUZLG46cOY321YW7Ufz3lMtrhw==}
-    requiresBuild: true
-    dependencies:
-      bindings: 1.2.1
-      nan: 2.22.0
-    dev: false
 
   /media-typer@0.3.0:
     resolution: {integrity: sha512-dq+qelQ9akHpcOl/gUVRTxVIOkAJ1wR3QAvb4RsVjS8oVoFjDGTc679wJYmUmknUF5HwMLOgb5O+a3KxfWapPQ==}

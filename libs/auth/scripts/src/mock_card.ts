@@ -1,13 +1,14 @@
 import yargs from 'yargs/yargs';
 import {
   assert,
+  DateWithoutTime,
   extractErrorMessage,
   Optional,
   throwIllegalValue,
 } from '@votingworks/basics';
 import { readElection } from '@votingworks/fs';
 
-import { ElectionKey } from '@votingworks/types';
+import { ElectionId, ElectionKey } from '@votingworks/types';
 import { DEV_JURISDICTION } from '../../src/jurisdictions';
 import { mockCard } from '../../src/mock_file_card';
 
@@ -88,26 +89,31 @@ async function parseCommandLineArgs(
   }
 
   let electionKey: Optional<ElectionKey>;
-  if (['election-manager', 'poll-worker'].includes(parsedArgs.cardType)) {
-    if (!parsedArgs.electionDefinition) {
-      throw new Error(
-        `Must specify election-definition for election manager and poll worker cards\n\n${helpMessage}`
-      );
-    }
-    const readElectionResult = await readElection(
-      parsedArgs.electionDefinition
-    );
-    if (readElectionResult.isErr()) {
-      throw new Error(
-        `${parsedArgs.electionDefinition} isn't a valid election definition`
-      );
-    }
-    const { election } = readElectionResult.ok();
-    electionKey = {
-      id: election.id,
-      date: election.date,
-    };
-  }
+  // if (['election-manager', 'poll-worker'].includes(parsedArgs.cardType)) {
+  //   if (!parsedArgs.electionDefinition) {
+  //     throw new Error(
+  //       `Must specify election-definition for election manager and poll worker cards\n\n${helpMessage}`
+  //     );
+  //   }
+  //   const readElectionResult = await readElection(
+  //     parsedArgs.electionDefinition
+  //   );
+  //   if (readElectionResult.isErr()) {
+  //     throw new Error(
+  //       `${parsedArgs.electionDefinition} isn't a valid election definition`
+  //     );
+  //   }
+  //   const { election } = readElectionResult.ok();
+  //   electionKey = {
+  //     id: election.id,
+  //     date: election.date,
+  //   };
+  // }
+
+  electionKey = {
+    id: 'placeholder-election-id' as ElectionId,
+    date: new DateWithoutTime('2025-01-09'),
+  };
 
   return {
     cardType: parsedArgs.cardType,

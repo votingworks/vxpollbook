@@ -500,12 +500,13 @@ export class DippedSmartCardAuth implements DippedSmartCardAuthApi {
                   assert(
                     user.role === 'vendor' ||
                       user.role === 'system_administrator' ||
-                      user.role === 'election_manager'
+                      user.role === 'election_manager' ||
+                      user.role === 'poll_worker'
                   );
                   const skipPinEntry = isFeatureFlagEnabled(
                     BooleanEnvironmentVariableName.SKIP_PIN_ENTRY
                   );
-                  return skipPinEntry
+                  return skipPinEntry || user.role === 'poll_worker'
                     ? {
                         status: 'remove_card',
                         user,
@@ -561,6 +562,9 @@ export class DippedSmartCardAuth implements DippedSmartCardAuthApi {
                   };
                 }
                 case 'election_manager': {
+                  return { status: 'logged_in', user, sessionExpiresAt };
+                }
+                case 'poll_worker': {
                   return { status: 'logged_in', user, sessionExpiresAt };
                 }
                 /* istanbul ignore next: Compile-time check for completeness */
@@ -675,9 +679,10 @@ export class DippedSmartCardAuth implements DippedSmartCardAuthApi {
     }
 
     if (
-      !['vendor', 'system_administrator', 'election_manager'].includes(
-        user.role
-      )
+      ![
+        /*'vendor', 'system_administrator',*/ 'election_manager',
+        'poll_worker',
+      ].includes(user.role)
     ) {
       return err('user_role_not_allowed');
     }

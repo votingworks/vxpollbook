@@ -2,7 +2,6 @@ import fetch from 'cross-fetch';
 import { deserialize, serialize } from './serialization';
 import { AnyApi, AnyRpcMethod, inferApiMethods } from './server';
 import { rootDebug } from './debug';
-import { AbortController } from 'node-abort-controller';
 
 const debug = rootDebug.extend('client');
 
@@ -75,24 +74,16 @@ export function createClient<Api extends AnyApi>(
         const inputJson = serialize(input);
 
         debug(`Call: ${methodName}(${inputJson})`);
-
-        const controller = new AbortController();
-        let timeoutId: NodeJS.Timeout | undefined;
-        if (options.timeout) {
-          timeoutId = setTimeout(() => controller.abort(), options.timeout);
-        }
-
         try {
           const url = methodUrl(methodName, options.baseUrl);
           const response = await fetch(url, {
             method: 'POST',
             body: serialize(input),
             headers: { 'Content-type': 'application/json' },
-            signal: controller.signal,
+            signal: options.timeout
+              ? AbortSignal.timeout(options.timeout)
+              : undefined,
           });
-          if (timeoutId) {
-            clearTimeout(timeoutId);
-          }
           debug(`Response status code: ${response.status}`);
 
           const hasJsonBody = response.headers
@@ -123,7 +114,6 @@ export function createClient<Api extends AnyApi>(
           const result = deserialize(resultText);
           return result;
         } catch (error) {
-          clearTimeout(timeoutId);
           const message =
             error instanceof Error
               ? error.message

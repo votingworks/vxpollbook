@@ -2,6 +2,7 @@ import fetch from 'cross-fetch';
 import { deserialize, serialize } from './serialization';
 import { AnyApi, AnyRpcMethod, inferApiMethods } from './server';
 import { rootDebug } from './debug';
+import { AbortController } from 'node-abort-controller';
 
 const debug = rootDebug.extend('client');
 
@@ -29,6 +30,7 @@ export type Client<Api extends AnyApi> = {
  */
 export interface ClientOptions {
   baseUrl: string;
+  timeout?: number; // If specified this timeout will be used on all requests. By default there is no timeout.
 }
 
 /**
@@ -74,13 +76,23 @@ export function createClient<Api extends AnyApi>(
 
         debug(`Call: ${methodName}(${inputJson})`);
 
+        const controller = new AbortController();
+        let timeoutId: NodeJS.Timeout | undefined;
+        if (options.timeout) {
+          timeoutId = setTimeout(() => controller.abort(), options.timeout);
+        }
+
         try {
           const url = methodUrl(methodName, options.baseUrl);
           const response = await fetch(url, {
             method: 'POST',
             body: serialize(input),
             headers: { 'Content-type': 'application/json' },
+            signal: controller.signal,
           });
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+          }
           debug(`Response status code: ${response.status}`);
 
           const hasJsonBody = response.headers
@@ -111,6 +123,7 @@ export function createClient<Api extends AnyApi>(
           const result = deserialize(resultText);
           return result;
         } catch (error) {
+          clearTimeout(timeoutId);
           const message =
             error instanceof Error
               ? error.message

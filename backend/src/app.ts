@@ -49,7 +49,10 @@ function toCamelCase(str: string) {
 }
 
 function createApiClientForAddress(address: string): grout.Client<Api> {
-  return grout.createClient<Api>({ baseUrl: `${address}/api` });
+  return grout.createClient<Api>({
+    baseUrl: `${address}/api`,
+    timeout: NETWORK_REQUEST_TIMEOUT,
+  });
 }
 
 async function readPollbookPackage(

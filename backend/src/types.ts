@@ -5,7 +5,7 @@ import {
   ElectionIdSchema,
   Election as VxSuiteElection,
 } from '@votingworks/types';
-import { Api } from './app';
+import type { Api } from './app';
 
 export type Election = Pick<
   VxSuiteElection,

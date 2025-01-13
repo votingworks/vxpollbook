@@ -14,7 +14,6 @@ import {
 import { DEFAULT_SYSTEM_SETTINGS, safeParseJson } from '@votingworks/types';
 import { parse } from 'csv-parse/sync';
 import { setInterval } from 'node:timers/promises';
-import { exec } from 'node:child_process';
 import {
   DippedSmartCardAuthApi,
   DippedSmartCardAuthMachineState,

@@ -25,7 +25,7 @@ import {
 } from './types';
 import { AvahiService } from './avahi';
 import { rootDebug } from './debug';
-import { PORT } from './globals';
+import { NETWORK_POLLING_INTERVAL, PORT } from './globals';
 
 const debug = rootDebug;
 
@@ -37,11 +37,6 @@ export interface AppContext {
 
 const MEGABYTE = 1024 * 1024;
 const MAX_POLLBOOK_PACKAGE_SIZE = 10 * MEGABYTE;
-
-const discoveredMachines: Record<
-  string,
-  { lastSeen: Date; apiClient: grout.Client<Api>; machineId: string }
-> = {};
 
 function toCamelCase(str: string) {
   const words = str
@@ -138,6 +133,61 @@ function pollUsbDriveForPollbookPackage({ workspace, usbDrive }: AppContext) {
   });
 }
 
+async function setupMachineNetworking({
+  machineId,
+  workspace,
+}: AppContext): Promise<void> {
+  const currentNodeServiceName = `Pollbook-${machineId}`;
+  // Advertise a service for this machine
+  debug('Publishing service %s on port %d', currentNodeServiceName, PORT);
+  await AvahiService.advertiseHttpService(currentNodeServiceName, PORT);
+
+  // Poll every 5s for new machines on the network
+  process.nextTick(async () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    for await (const _ of setInterval(NETWORK_POLLING_INTERVAL)) {
+      debug('Polling network for new machines');
+      const services = await AvahiService.discoverHttpServices();
+      for (const { name, host, port } of services) {
+        if (name === currentNodeServiceName) {
+          // current machine, do not need to connect
+          continue;
+        }
+        const currentPollbookService =
+          workspace.store.getPollbookServiceForName(name);
+        const apiClient = currentPollbookService
+          ? currentPollbookService.apiClient
+          : createApiClientForAddress(`http://${host}:${port}`);
+
+        try {
+          const retrievedMachineId = await apiClient.getMachineId();
+          if (currentPollbookService) {
+            currentPollbookService.lastSeen = new Date();
+            workspace.store.setPollbookServiceForName(
+              name,
+              currentPollbookService
+            );
+          } else {
+            debug(
+              'Discovered new pollbook with machineId %s on the network',
+              retrievedMachineId
+            );
+            workspace.store.setPollbookServiceForName(name, {
+              machineId: retrievedMachineId,
+              apiClient,
+              lastSeen: new Date(),
+            });
+          }
+        } catch (error) {
+          debug(`Failed to get machineId from ${name}: ${error}`);
+        }
+      }
+      // Clean up stale machines
+      workspace.store.cleanupStalePollbookServices();
+    }
+  });
+}
+
 function buildApi({ workspace, machineId }: AppContext) {
   const { store } = workspace;
 
@@ -193,54 +243,6 @@ function buildApi({ workspace, machineId }: AppContext) {
   });
 }
 
-export async function setupMachineNetworking(machineId: string): Promise<void> {
-  // Advertise a service
-  await AvahiService.advertiseHttpService(`Pollbook-${machineId}`, PORT);
-
-  // Discover services after a short delay
-  process.nextTick(async () => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    for await (const _ of setInterval(5000)) {
-      debug(' Discovering HTTP services');
-      const services = await AvahiService.discoverHttpServices();
-      debug('Discovered HTTP services:', services);
-      for (const { name, host, port } of services) {
-        debug(
-          `Discovered machine ${name} at ${host}:${port} , sending a heartbeat`
-        );
-        let apiClient: grout.Client<Api>;
-        if (discoveredMachines[name]) {
-          apiClient = discoveredMachines[name].apiClient;
-        } else {
-          apiClient = createApiClientForAddress(`http://${host}:${port}`);
-        }
-        try {
-          const retrievedMachineId = await apiClient.getMachineId();
-          discoveredMachines[name] = {
-            lastSeen: new Date(),
-            apiClient,
-            machineId: retrievedMachineId,
-          };
-          debug(
-            `Got ACK back, updated last seen time for machineId ${retrievedMachineId}`
-          );
-        } catch (error) {
-          debug(`Failed to get machineId from ${name}: ${error}`);
-        }
-      }
-      // Check for machines that have not been seen in the last 60 seconds and removed them
-      for (const [machineName, { lastSeen }] of Object.entries(
-        discoveredMachines
-      )) {
-        if (new Date().getTime() - lastSeen.getTime() > 60000) {
-          delete discoveredMachines[machineName];
-          debug(`Removed machineId ${machineName} due to timeout`);
-        }
-      }
-    }
-  });
-}
-
 export type Api = ReturnType<typeof buildApi>;
 
 export function buildApp(context: AppContext): Application {
@@ -251,7 +253,7 @@ export function buildApp(context: AppContext): Application {
 
   pollUsbDriveForPollbookPackage(context);
 
-  void setupMachineNetworking(context.machineId);
+  void setupMachineNetworking(context);
 
   return app;
 }

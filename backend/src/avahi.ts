@@ -6,6 +6,12 @@ const debug = rootDebug.extend('networking');
 
 const execPromise = promisify(exec);
 
+interface AvahiDiscoveredService {
+  name: string;
+  host: string;
+  port: string;
+}
+
 export class AvahiService {
   private static runningProcess: ReturnType<typeof exec> | null = null;
 
@@ -58,9 +64,7 @@ export class AvahiService {
    * Discovers HTTP services on the local network.
    * @returns A promise resolving to an array of discovered services.
    */
-  static async discoverHttpServices(): Promise<
-    Array<{ name: string; host: string; port: string }>
-  > {
+  static async discoverHttpServices(): Promise<AvahiDiscoveredService[]> {
     const command = `avahi-browse -r -t -p _http._tcp`;
     try {
       const { stdout } = await execPromise(command);
@@ -81,10 +85,8 @@ export class AvahiService {
    * @param output - The raw output from the `avahi-browse` command.
    * @returns An array of service objects containing the name, host, and port.
    */
-  private static parseBrowseOutput(
-    output: string
-  ): Array<{ name: string; host: string; port: string }> {
-    const services: Array<{ name: string; host: string; port: string }> = [];
+  private static parseBrowseOutput(output: string): AvahiDiscoveredService[] {
+    const services: AvahiDiscoveredService[] = [];
     const lines = output.split('\n');
 
     for (const line of lines) {

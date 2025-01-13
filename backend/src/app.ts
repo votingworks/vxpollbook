@@ -25,7 +25,11 @@ import {
 } from './types';
 import { AvahiService } from './avahi';
 import { rootDebug } from './debug';
-import { NETWORK_POLLING_INTERVAL, PORT } from './globals';
+import {
+  NETWORK_POLLING_INTERVAL,
+  NETWORK_REQUEST_TIMEOUT,
+  PORT,
+} from './globals';
 
 const debug = rootDebug;
 

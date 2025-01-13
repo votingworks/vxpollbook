@@ -31,7 +31,6 @@ import {
   PrinterStatus as FujitsuPrinterStatus,
   getMockFileFujitsuPrinterHandler,
 } from '@votingworks/fujitsu-thermal-printer';
-import { createMockPdiScanner } from '@votingworks/pdi-scanner';
 import { Api, useDevDockRouter, MockSpec } from './dev_dock_api';
 
 const electionGeneral = readElectionGeneral();

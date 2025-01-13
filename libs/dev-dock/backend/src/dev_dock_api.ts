@@ -28,8 +28,6 @@ import {
 } from '@votingworks/fujitsu-thermal-printer';
 import { getMockFilePrinterHandler } from '@votingworks/printing';
 import { writeFile } from 'node:fs/promises';
-import { MockScanner, MockSheetStatus } from '@votingworks/pdi-scanner';
-import { pdfToImages } from '@votingworks/image-utils';
 import { execFile } from './utils';
 
 export type DevDockUserRole = Exclude<UserRole, 'cardless_voter'>;
@@ -72,7 +70,6 @@ function readDevDockFileContents(devDockFilePath: string): DevDockFileContents {
 
 export interface MockSpec {
   printerConfig?: PrinterConfig | 'fujitsu';
-  mockPdiScanner?: MockScanner;
 }
 
 interface SerializableMockSpec extends Omit<MockSpec, 'mockPdiScanner'> {
@@ -88,7 +85,6 @@ function buildApi(devDockFilePath: string, mockSpec: MockSpec) {
     getMockSpec(): SerializableMockSpec {
       return {
         ...mockSpec,
-        mockPdiScanner: Boolean(mockSpec.mockPdiScanner),
       };
     },
 
@@ -223,24 +219,6 @@ function buildApi(devDockFilePath: string, mockSpec: MockSpec) {
 
     setFujitsuPrinterStatus(status: FujitsuPrinterStatus): void {
       fujitsuPrinterHandler.setStatus(status);
-    },
-
-    pdiScannerGetSheetStatus(): MockSheetStatus {
-      return assertDefined(mockSpec.mockPdiScanner).getSheetStatus();
-    },
-
-    async pdiScannerInsertSheet(input: { path: string }): Promise<void> {
-      const pdfData = fs.readFileSync(input.path);
-      const images = await iter(pdfToImages(pdfData, { scale: 200 / 72 }))
-        .map(({ page }) => page)
-        .toArray();
-      assertDefined(mockSpec.mockPdiScanner).insertSheet(
-        asSheet(images.slice(0, 2))
-      );
-    },
-
-    pdiScannerRemoveSheet(): void {
-      assertDefined(mockSpec.mockPdiScanner).removeSheet();
     },
   });
 }

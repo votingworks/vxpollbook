@@ -6,9 +6,9 @@ import {
   Optional,
   throwIllegalValue,
 } from '@votingworks/basics';
-import { readElection } from '@votingworks/fs';
+import { readElection, readFile } from '@votingworks/fs';
 
-import { ElectionId, ElectionKey } from '@votingworks/types';
+import { ElectionId, ElectionKey, safeParseJson } from '@votingworks/types';
 import { DEV_JURISDICTION } from '../../src/jurisdictions';
 import { mockCard } from '../../src/mock_file_card';
 
@@ -89,31 +89,28 @@ async function parseCommandLineArgs(
   }
 
   let electionKey: Optional<ElectionKey>;
-  // if (['election-manager', 'poll-worker'].includes(parsedArgs.cardType)) {
-  //   if (!parsedArgs.electionDefinition) {
-  //     throw new Error(
-  //       `Must specify election-definition for election manager and poll worker cards\n\n${helpMessage}`
-  //     );
-  //   }
-  //   const readElectionResult = await readElection(
-  //     parsedArgs.electionDefinition
-  //   );
-  //   if (readElectionResult.isErr()) {
-  //     throw new Error(
-  //       `${parsedArgs.electionDefinition} isn't a valid election definition`
-  //     );
-  //   }
-  //   const { election } = readElectionResult.ok();
-  //   electionKey = {
-  //     id: election.id,
-  //     date: election.date,
-  //   };
-  // }
-
-  electionKey = {
-    id: 'placeholder-election-id' as ElectionId,
-    date: new DateWithoutTime('2025-01-09'),
-  };
+  if (['election-manager', 'poll-worker'].includes(parsedArgs.cardType)) {
+    if (!parsedArgs.electionDefinition) {
+      throw new Error(
+        `Must specify election-definition for election manager and poll worker cards\n\n${helpMessage}`
+      );
+    }
+    const readElectionResult = safeParseJson(
+      (await readFile(parsedArgs.electionDefinition, { maxSize: 1024 * 1024 }))
+        .unsafeUnwrap()
+        .toString('utf-8')
+    );
+    if (readElectionResult.isErr()) {
+      throw new Error(
+        `${parsedArgs.electionDefinition} isn't a valid election definition`
+      );
+    }
+    const election = readElectionResult.ok() as { id: string; date: string };
+    electionKey = {
+      id: election.id as ElectionId,
+      date: new DateWithoutTime(election.date),
+    };
+  }
 
   return {
     cardType: parsedArgs.cardType,

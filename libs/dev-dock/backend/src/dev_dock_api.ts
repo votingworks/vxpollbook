@@ -8,7 +8,9 @@ import {
   asSheet,
   PrinterConfig,
   PrinterStatus,
+  safeParse,
   safeParseElectionDefinition,
+  safeParseJson,
   UserRole,
 } from '@votingworks/types';
 import {
@@ -95,11 +97,16 @@ function buildApi(devDockFilePath: string, mockSpec: MockSpec) {
         electionPathToAbsolute(input.path),
         'utf-8'
       );
-      const parseResult = safeParseElectionDefinition(electionData);
-      assert(parseResult.isOk());
+      const parseResult = safeParseJson(electionData).unsafeUnwrap() as {
+        title: string;
+      };
+
+      // const parseResult = safeParseElectionDefinition(electionData);
+      // assert(parseResult.isOk());
       const electionInfo: DevDockElectionInfo = {
         path: input.path,
-        title: parseResult.ok().election.title,
+        title: parseResult.title,
+        // title: parseResult.ok().election.title,
       };
 
       writeDevDockFileContents(devDockFilePath, {

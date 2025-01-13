@@ -19,7 +19,7 @@ import {
   createApiClient,
   createQueryClient,
   getAuthStatus,
-  getElectionConfiguration,
+  getElection,
 } from './api';
 import { ErrorScreen } from './error_screen';
 import { PollWorkerScreen } from './poll_worker_screen';
@@ -30,15 +30,13 @@ import { ElectionManagerScreen } from './election_manager_screen';
 function AppRoot(): JSX.Element | null {
   const getAuthStatusQuery = getAuthStatus.useQuery();
   const checkPinMutation = checkPin.useMutation();
-  const getElectionConfigurationQuery = getElectionConfiguration.useQuery();
-  if (
-    !(getAuthStatusQuery.isSuccess && getElectionConfigurationQuery.isSuccess)
-  ) {
+  const getElectionQuery = getElection.useQuery();
+  if (!(getAuthStatusQuery.isSuccess && getElectionQuery.isSuccess)) {
     return null;
   }
 
   const auth = getAuthStatusQuery.data;
-  const electionConfiguration = getElectionConfigurationQuery.data;
+  const election = getElectionQuery.data;
 
   if (auth.status === 'logged_out' && auth.reason === 'no_card_reader') {
     return <SetupCardReaderPage usePollWorkerLanguage={false} />;
@@ -68,7 +66,6 @@ function AppRoot(): JSX.Element | null {
     );
   }
 
-  console.log(auth);
   if (auth.status === 'logged_out') {
     if (
       auth.reason === 'machine_locked' ||
@@ -79,13 +76,17 @@ function AppRoot(): JSX.Element | null {
     return (
       <InvalidCardScreen
         reasonAndContext={auth}
-        recommendedAction="Use an election manager or poll worker card."
+        recommendedAction={
+          auth.reason === 'machine_not_configured'
+            ? 'Use an election manager card.'
+            : 'Use a valid election manager or poll worker card.'
+        }
         cardInsertionDirection="right"
       />
     );
   }
 
-  if (electionConfiguration.isErr()) {
+  if (election.isErr()) {
     return <UnconfiguredScreen />;
   }
 

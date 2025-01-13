@@ -21,8 +21,8 @@ import {
 } from '@votingworks/auth';
 import { Workspace } from './workspace';
 import {
-  ElectionConfiguration,
-  ElectionConfigurationSchema,
+  Election,
+  ElectionSchema,
   PollbookPackage,
   Voter,
   VoterIdentificationMethod,
@@ -66,12 +66,15 @@ function createApiClientForAddress(address: string): grout.Client<Api> {
 }
 
 function constructAuthMachineState(
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _workspace: Workspace
+  workspace: Workspace
 ): DippedSmartCardAuthMachineState {
+  const election = workspace.store.getElection();
   return {
     ...DEFAULT_SYSTEM_SETTINGS['auth'],
-    electionKey: undefined,
+    electionKey: election && {
+      id: election.id,
+      date: election.date,
+    },
   };
 }
 
@@ -90,9 +93,9 @@ async function readPollbookPackage(
 
   const electionEntry = getFileByName(entries, 'election.json', zipName);
   const electionJsonString = await readTextEntry(electionEntry);
-  const election: ElectionConfiguration = safeParseJson(
+  const election: Election = safeParseJson(
     electionJsonString,
-    ElectionConfigurationSchema
+    ElectionSchema
   ).unsafeUnwrap();
 
   const votersEntry = getFileByName(entries, 'voters.csv', zipName);
@@ -116,7 +119,7 @@ function pollUsbDriveForPollbookPackage({
   usbDrive,
 }: AppContext) {
   debug('Polling USB drive for pollbook package');
-  if (workspace.store.getElectionConfiguration()) {
+  if (workspace.store.getElection()) {
     return;
   }
   process.nextTick(async () => {
@@ -225,7 +228,8 @@ async function setupMachineNetworking({
   });
 }
 
-function buildApi({ auth, workspace, machineId }: AppContext) {
+function buildApi(context: AppContext) {
+  const { auth, workspace, usbDrive, machineId } = context;
   const { store } = workspace;
 
   return grout.createApi({
@@ -248,15 +252,18 @@ function buildApi({ auth, workspace, machineId }: AppContext) {
       );
     },
 
-    getElectionConfiguration(): Result<
-      ElectionConfiguration,
-      'unconfigured' | ConfigurationStatus
-    > {
+    getElection(): Result<Election, 'unconfigured' | ConfigurationStatus> {
       if (configurationStatus) {
         return err(configurationStatus);
       }
-      const election = store.getElectionConfiguration();
+      const election = store.getElection();
       return election ? ok(election) : err('unconfigured');
+    },
+
+    async unconfigure(): Promise<void> {
+      store.deleteElectionAndVoters();
+      await usbDrive.eject();
+      pollUsbDriveForPollbookPackage(context);
     },
 
     searchVoters(input: {

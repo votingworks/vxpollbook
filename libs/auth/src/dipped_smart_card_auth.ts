@@ -678,24 +678,19 @@ export class DippedSmartCardAuth implements DippedSmartCardAuthApi {
       return err('wrong_jurisdiction');
     }
 
-    if (
-      ![
-        /*'vendor', 'system_administrator',*/ 'election_manager',
-        'poll_worker',
-      ].includes(user.role)
-    ) {
+    if (!(user.role === 'election_manager' || user.role === 'poll_worker')) {
       return err('user_role_not_allowed');
     }
 
-    if (user.role === 'election_manager') {
-      if (!machineState.electionKey) {
-        return this.config.allowElectionManagersToAccessUnconfiguredMachines
-          ? ok()
-          : err('machine_not_configured');
-      }
-      if (!deepEqual(user.electionKey, machineState.electionKey)) {
-        return err('wrong_election');
-      }
+    if (!machineState.electionKey) {
+      return user.role === 'election_manager' &&
+        this.config.allowElectionManagersToAccessUnconfiguredMachines
+        ? ok()
+        : err('machine_not_configured');
+    }
+
+    if (!deepEqual(user.electionKey, machineState.electionKey)) {
+      return err('wrong_election');
     }
 
     return ok();

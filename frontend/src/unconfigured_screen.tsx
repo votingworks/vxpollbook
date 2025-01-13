@@ -3,34 +3,37 @@ import {
   FullScreenIconWrapper,
   FullScreenMessage,
   Icons,
-  Loading,
   Main,
   Screen,
   UsbDriveImage,
 } from '@votingworks/ui';
-import { getElectionConfiguration } from './api';
+import { getElection } from './api';
 
 export function UnconfiguredScreen(): JSX.Element {
-  const getElectionConfigurationQuery = getElectionConfiguration.useQuery({
+  const getElectionQuery = getElection.useQuery({
     refetchInterval: 100,
   });
-  assert(getElectionConfigurationQuery.isSuccess);
-  const configurationResult = getElectionConfigurationQuery.data;
+  assert(getElectionQuery.isSuccess);
+  const electionResult = getElectionQuery.data;
 
-  if (configurationResult.isOk() || configurationResult.err() === 'loading') {
+  if (electionResult.isOk() || electionResult.err() === 'loading') {
     return (
       <Screen>
         <Main centerChild>
           <FullScreenMessage
             title="Configuring VxPollbook from USB drive…"
-            image={<Loading />}
+            image={
+              <FullScreenIconWrapper>
+                <Icons.Loading />
+              </FullScreenIconWrapper>
+            }
           />
         </Main>
       </Screen>
     );
   }
 
-  if (configurationResult.err() === 'not-found') {
+  if (electionResult.err() === 'not-found') {
     return (
       <Screen>
         <Main centerChild>

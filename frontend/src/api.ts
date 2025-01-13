@@ -111,17 +111,13 @@ export const updateSessionExpiry = {
   },
 } as const;
 
-export const getElectionConfiguration = {
+export const getElection = {
   queryKey(): QueryKey {
-    return ['getElectionConfiguration'];
+    return ['getElection'];
   },
   useQuery(options: { refetchInterval?: number } = {}) {
     const apiClient = useApiClient();
-    return useQuery(
-      this.queryKey(),
-      () => apiClient.getElectionConfiguration(),
-      options
-    );
+    return useQuery(this.queryKey(), () => apiClient.getElection(), options);
   },
 } as const;
 
@@ -155,6 +151,22 @@ export const checkInVoter = {
       async onSuccess() {
         await queryClient.invalidateQueries(searchVoters.queryKey());
         await queryClient.invalidateQueries(getCheckInCounts.queryKey());
+      },
+    });
+  },
+} as const;
+
+export const unconfigure = {
+  useMutation() {
+    const apiClient = useApiClient();
+    const queryClient = useQueryClient();
+    return useMutation(apiClient.unconfigure, {
+      async onSuccess() {
+        // If we configure with a different election, any data in the cache will
+        // correspond to the previous election, so we don't just invalidate, but
+        // reset all queries to clear their cached data, since invalidated
+        // queries may still return stale data while refetching.
+        await queryClient.resetQueries();
       },
     });
   },

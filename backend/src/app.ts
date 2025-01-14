@@ -29,6 +29,7 @@ import {
   Election,
   ElectionSchema,
   PollbookPackage,
+  PollBookService,
   Voter,
   VoterIdentificationMethod,
   VoterSearchParams,
@@ -43,6 +44,7 @@ import {
 import { CheckInReceipt } from './check_in_receipt';
 
 const debug = rootDebug;
+const usbDebug = debug.extend('usb');
 
 export interface AppContext {
   workspace: Workspace;
@@ -66,6 +68,7 @@ function toCamelCase(str: string) {
 }
 
 function createApiClientForAddress(address: string): grout.Client<Api> {
+  debug('Creating API client for address %s', address);
   return grout.createClient<Api>({
     baseUrl: `${address}/api`,
     timeout: NETWORK_REQUEST_TIMEOUT,
@@ -125,7 +128,7 @@ function pollUsbDriveForPollbookPackage({
   workspace,
   usbDrive,
 }: AppContext) {
-  debug('Polling USB drive for pollbook package');
+  usbDebug('Polling USB drive for pollbook package');
   if (workspace.store.getElection()) {
     return;
   }
@@ -136,13 +139,13 @@ function pollUsbDriveForPollbookPackage({
       if (usbDriveStatus.status !== 'mounted') {
         continue;
       }
-      debug('Found USB drive mounted at %s', usbDriveStatus.mountPoint);
+      usbDebug('Found USB drive mounted at %s', usbDriveStatus.mountPoint);
 
       const authStatus = await auth.getAuthStatus(
         constructAuthMachineState(workspace)
       );
       if (!isElectionManagerAuth(authStatus)) {
-        debug('Not logged in as election manager, not configuring');
+        usbDebug('Not logged in as election manager, not configuring');
         continue;
       }
 
@@ -333,6 +336,15 @@ function buildApi(context: AppContext) {
 
     getMachineId(): string {
       return machineId;
+    },
+
+    getConnectedPollbooks(): Array<
+      Pick<PollBookService, 'machineId' | 'lastSeen'>
+    > {
+      return store.getAllConnectedPollbookServices().map((pollbook) => ({
+        machineId: pollbook.machineId,
+        lastSeen: pollbook.lastSeen,
+      }));
     },
   });
 }

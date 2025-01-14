@@ -125,6 +125,16 @@ export const getPrinterStatus = {
   },
 } as const;
 
+export const getConnectedPollbooks = {
+  queryKey(): QueryKey {
+    return ['getConnectedPollbooks'];
+  },
+  useQuery() {
+    const apiClient = useApiClient();
+    return useQuery(this.queryKey(), () => apiClient.getConnectedPollbooks());
+  },
+} as const;
+
 export const getElection = {
   queryKey(): QueryKey {
     return ['getElection'];

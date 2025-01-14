@@ -1,5 +1,9 @@
 lockfileVersion: '6.0'
 
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
 overrides:
   '@babel/traverse': 7.23.2
   '@types/eslint': 8.4.1
@@ -1798,6 +1802,9 @@ importers:
     dependencies:
       '@fortawesome/fontawesome-svg-core':
         specifier: ^6.2.1
+        version: 6.7.2
+      '@fortawesome/free-brands-svg-icons':
+        specifier: ^6.7.2
         version: 6.7.2
       '@fortawesome/free-regular-svg-icons':
         specifier: ^6.2.1
@@ -4630,6 +4637,13 @@ packages:
       '@fortawesome/fontawesome-common-types': 6.7.2
     dev: false
 
+  /@fortawesome/free-brands-svg-icons@6.7.2:
+    resolution: {integrity: sha512-zu0evbcRTgjKfrr77/2XX+bU+kuGfjm0LbajJHVIgBWNIDzrhpRxiCPNT8DW5AdmSsq7Mcf9D1bH0aSeSUSM+Q==}
+    engines: {node: '>=6'}
+    dependencies:
+      '@fortawesome/fontawesome-common-types': 6.7.2
+    dev: false
+
   /@fortawesome/free-regular-svg-icons@6.7.2:
     resolution: {integrity: sha512-7Z/ur0gvCMW8G93dXIQOkQqHo2M5HLhYrRVC0//fakJXxcF1VmMPsxnG6Ee8qEylA8b8Q3peQXWMNZ62lYF28g==}
     engines: {node: '>=6'}
@@ -5581,7 +5595,7 @@ packages:
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0
       react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0
-      typescript: '*'
+      typescript: 5.6.2
     peerDependenciesMeta:
       typescript:
         optional: true
@@ -8344,7 +8358,7 @@ packages:
     resolution: {integrity: sha512-kcZ6+W5QzcJ3P1Mt+83OUv/oHFqZHIx8DuxG6eZ5RGMERoLqp4BuGjhHLYGK+Kf5XVkQvqBSmAy/nGWN3qDgEA==}
     engines: {node: '>=14'}
     peerDependencies:
-      typescript: '>=4.9.5'
+      typescript: 5.6.2
     peerDependenciesMeta:
       typescript:
         optional: true
@@ -9586,7 +9600,7 @@ packages:
     resolution: {integrity: sha512-gH3iR3g4JfF+yYPaJYkN7jEl9QbweL/YfkoRlNnuIEHEz1vHVlCmWOS+eGGiRuzHQXdJFCOTxRgvju9b8VUmrw==}
     engines: {node: ^14.18.0 || >=16.0.0}
     peerDependencies:
-      '@types/eslint': '>=8.0.0'
+      '@types/eslint': 8.4.1
       eslint: '>=8.0.0'
       eslint-config-prettier: '*'
       prettier: '>=3.0.0'
@@ -16064,7 +16078,7 @@ packages:
     resolution: {integrity: sha512-i3eMG77UTMD0hZhgRS562pv83RC6ukSAC2GMNWc+9dieh/+jDM5u5YG+NHX6VNDRHQcHwmsTHctP9LhbC3WxVw==}
     engines: {node: '>=16'}
     peerDependencies:
-      typescript: '>=4.2.0'
+      typescript: 5.6.2
     dependencies:
       typescript: 5.6.2
 
@@ -16083,7 +16097,7 @@ packages:
       babel-jest: ^29.0.0
       esbuild: '*'
       jest: ^29.0.0
-      typescript: '>=4.3 <6'
+      typescript: 5.6.2
     peerDependenciesMeta:
       '@babel/core':
         optional: true
@@ -16129,7 +16143,7 @@ packages:
     resolution: {integrity: sha512-mHKK3iUXL+3UF6xL5k0PEhKRUBKPBCv/+RkEOpjRWxxx27KKRBmmA60A9pgOUvMi8GKhRMPEmjBRPzs2W7O1OA==}
     engines: {node: '>= 6'}
     peerDependencies:
-      typescript: '>=2.8.0 || >= 3.2.0-dev || >= 3.3.0-dev || >= 3.4.0-dev || >= 3.5.0-dev || >= 3.6.0-dev || >= 3.6.0-beta || >= 3.7.0-dev || >= 3.7.0-beta'
+      typescript: 5.6.2
     dependencies:
       tslib: 1.14.1
       typescript: 5.6.2
@@ -17278,7 +17292,3 @@ packages:
   /zod@3.23.5:
     resolution: {integrity: sha512-fkwiq0VIQTksNNA131rDOsVJcns0pfVUjHzLrNBiF/O/Xxb5lQyEXkhZWcJ7npWsYlvs+h0jFWXXy4X46Em1JA==}
     dev: false
-
-settings:
-  autoInstallPeers: true
-  excludeLinksFromLockfile: false

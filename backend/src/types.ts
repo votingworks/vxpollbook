@@ -143,6 +143,24 @@ export const VoterSchema: z.ZodSchema<Voter> = z.object({
   checkIn: VoterCheckInSchema.optional(),
 });
 
+export interface MachineInformation {
+  machineId: string;
+  configuredElectionId?: string;
+}
+
+export interface PollbookEvent {
+  type: EventType;
+  eventId: number;
+  machineId: string;
+  timestamp: string;
+}
+
+export interface VoterCheckInEvent extends PollbookEvent {
+  type: EventType.VoterCheckIn;
+  voterId: string;
+  checkInData: VoterCheckIn;
+}
+
 export interface VoterSearchParams {
   lastName: string;
   firstName: string;
@@ -154,9 +172,16 @@ export interface PollbookPackage {
 }
 
 export interface PollBookService {
-  apiClient: grout.Client<Api>;
+  apiClient?: grout.Client<Api>;
   machineId: string;
+  lastEventIdReceived?: string;
   lastSeen: Date;
+  status: PollbookConnectionStatus;
+}
+
+export interface ConnectedPollbookService extends PollBookService {
+  status: PollbookConnectionStatus.Connected;
+  apiClient: grout.Client<Api>;
 }
 
 export interface NetworkStatus {
@@ -175,4 +200,11 @@ export interface DeviceStatuses {
 export enum EventType {
   VoterCheckIn = 'VoterCheckIn',
   UndoVoterCheckIn = 'UndoVoterCheckIn',
+}
+
+export enum PollbookConnectionStatus {
+  Connected = 'Connected',
+  ShutDown = 'ShutDown',
+  LostConnection = 'LostConnection',
+  WrongElection = 'WrongElection',
 }

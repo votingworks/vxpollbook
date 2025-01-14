@@ -3,15 +3,27 @@ import { Client as DbClient } from '@votingworks/db';
 import { join } from 'node:path';
 // import { v4 as uuid } from 'uuid';
 import { BaseLogger } from '@votingworks/logging';
-import { assert, find, groupBy } from '@votingworks/basics';
+import {
+  assert,
+  find,
+  groupBy,
+  throwIllegalValue,
+  typedAs,
+} from '@votingworks/basics';
 import { safeParseJson } from '@votingworks/types';
+import { integer } from '@votingworks/types/src/cdf/cast-vote-records';
+import { P } from '@votingworks/ui';
 import { rootDebug } from './debug';
 import {
+  ConnectedPollbookService,
   Election,
   ElectionSchema,
   EventType,
+  PollbookConnectionStatus,
+  PollbookEvent,
   PollBookService,
   Voter,
+  VoterCheckInEvent,
   VoterCheckInSchema,
   VoterIdentificationMethod,
   VoterSchema,
@@ -25,6 +37,7 @@ const data: {
   voters?: Voter[];
   election?: Election;
   connectedPollbooks?: Record<string, PollBookService>;
+  lastEventId?: integer;
 } = {};
 
 // function convertSqliteTimestampToIso8601(
@@ -36,7 +49,10 @@ const data: {
 const SchemaPath = join(__dirname, '../schema.sql');
 
 export class Store {
-  private constructor(private readonly client: DbClient) {}
+  private constructor(
+    private readonly client: DbClient,
+    private readonly machineId: string
+  ) {}
 
   getDbPath(): string {
     return this.client.getDatabasePath();
@@ -45,15 +61,22 @@ export class Store {
   /**
    * Builds and returns a new store at `dbPath`.
    */
-  static fileStore(dbPath: string, logger: BaseLogger): Store {
-    return new Store(DbClient.fileClient(dbPath, logger, SchemaPath));
+  static fileStore(
+    dbPath: string,
+    logger: BaseLogger,
+    machineId: string
+  ): Store {
+    return new Store(
+      DbClient.fileClient(dbPath, logger, SchemaPath),
+      machineId
+    );
   }
 
   /**
    * Builds and returns a new store whose data is kept in memory.
    */
-  static memoryStore(): Store {
-    return new Store(DbClient.memoryClient(SchemaPath));
+  static memoryStore(machineId: string): Store {
+    return new Store(DbClient.memoryClient(SchemaPath), machineId);
   }
 
   private applyEventsToVoters(voters: Voter[]): Voter[] {
@@ -104,6 +127,85 @@ export class Store {
     }
     return this.applyEventsToVoters(data.voters);
   }
+  private async broadcastEventToNetwork(event: PollbookEvent): Promise<void> {
+    debug('broadcasting to network');
+    if (!data.connectedPollbooks) {
+      return;
+    }
+    const pollbookServices = this.getAllConnectedPollbookServices();
+    for (const pollbookService of pollbookServices) {
+      let retries = 3;
+      while (retries > 0) {
+        try {
+          debug(
+            'try to broadcast to pollbook service',
+            pollbookService.machineId
+          );
+          const isProcessed = await pollbookService.apiClient.receiveEvent({
+            pollbookEvent: event,
+          });
+          assert(isProcessed);
+          debug('success');
+          break; // Exit the retry loop if the event is processed successfully
+        } catch (error) {
+          retries -= 1;
+          debug(
+            'Failed to broadcast event to pollbook service %s: %s. Retries left: %d',
+            pollbookService.machineId,
+            error,
+            retries
+          );
+          if (retries === 0) {
+            debug(
+              'Removing pollbook service %s after 3 failed attempts',
+              pollbookService.machineId
+            );
+            delete data.connectedPollbooks[pollbookService.machineId];
+          }
+        }
+      }
+    }
+  }
+
+  saveEvents(pollbookEvents: PollbookEvent[]): boolean {
+    let isSuccess = true;
+    this.client.transaction(() => {
+      for (const pollbookEvent of pollbookEvents) {
+        isSuccess = isSuccess && this.saveEvent(pollbookEvent);
+      }
+    });
+    return isSuccess;
+  }
+
+  saveEvent(pollbookEvent: PollbookEvent): boolean {
+    try {
+      switch (pollbookEvent.type) {
+        case EventType.VoterCheckIn: {
+          const event = pollbookEvent as VoterCheckInEvent;
+          // Fail gracefully if the event was already saved.
+          this.client.run(
+            'INSERT OR IGNORE INTO event_log (event_id, machine_id, voter_id, event_type, timestamp, event_data) VALUES (?, ?, ?, ?, ?, ?)',
+            event.eventId,
+            event.machineId,
+            event.voterId,
+            event.type,
+            event.timestamp,
+            JSON.stringify(event.checkInData)
+          );
+          return true;
+        }
+        case EventType.UndoVoterCheckIn: {
+          throw new Error('Undoing voter check-ins is not yet implemented');
+        }
+        default: {
+          throwIllegalValue(pollbookEvent.type);
+        }
+      }
+    } catch (error) {
+      debug('Failed to save event: %s', error);
+      return false;
+    }
+  }
 
   getElection(): Election | undefined {
     if (!data.election) {
@@ -135,11 +237,13 @@ export class Store {
       this.client.run(
         `
           insert into elections (
+            election_id,
             election_data
           ) values (
-            ?
+            ?, ?
           )
         `,
+        election.id,
         JSON.stringify(election)
       );
       for (const voter of voters) {
@@ -191,6 +295,33 @@ export class Store {
     return matchingVoters;
   }
 
+  getLastSeenEventIdForMachine(machineId: string): integer {
+    const row = this.client.one(
+      'SELECT max(event_id) as last_event_id FROM event_log WHERE machine_id = ?',
+      machineId
+    ) as { last_event_id: integer };
+    return row.last_event_id;
+  }
+
+  getKnownMachinesWithEventIds(): Record<string, integer> {
+    const rows = this.client.all(
+      'SELECT machine_id, max(event_id) as last_event_id FROM event_log GROUP BY machine_id'
+    ) as Array<{ machine_id: string; last_event_id: integer }>;
+    const machines: Record<string, integer> = {};
+    for (const row of rows) {
+      machines[row.machine_id] = row.last_event_id;
+    }
+    return machines;
+  }
+
+  private getNextEventId() {
+    if (!data.lastEventId) {
+      data.lastEventId = this.getLastSeenEventIdForMachine(this.machineId);
+    }
+    data.lastEventId += 1;
+    return data.lastEventId;
+  }
+
   recordVoterCheckIn({
     voterId,
     identificationMethod,
@@ -204,14 +335,17 @@ export class Store {
   }): { voter: Voter; count: number } {
     const voters = this.getVoters();
     assert(voters);
+    assert(machineId === this.machineId);
     const voter = find(voters, (v) => v.voterId === voterId);
     voter.checkIn = {
       timestamp: timestamp.toISOString(),
       identificationMethod,
       machineId,
     };
+    const eventId = this.getNextEventId();
     this.client.run(
-      'INSERT INTO event_log (machine_id, voter_id, event_type, event_data) VALUES (?, ?, ?, ?)',
+      'INSERT INTO event_log (event_id, machine_id, voter_id, event_type, event_data) VALUES (?, ?, ?, ?, ?)',
+      eventId,
       machineId,
       voterId,
       EventType.VoterCheckIn,
@@ -237,10 +371,78 @@ export class Store {
     ).length;
   }
 
-  getPollbookServiceForName(
-    avahiServiceName: string
-  ): PollBookService | undefined {
-    return data.connectedPollbooks?.[avahiServiceName];
+  getNewEvents(knownMachines: Record<string, integer>): PollbookEvent[] {
+    const machineIds = Object.keys(knownMachines);
+    const placeholders = machineIds.map(() => '?').join(', ');
+    // Query for all events from unknown machines.
+    const unknownMachineQuery = `
+      SELECT event_id, machine_id, voter_id, event_type, timestamp, event_data
+      FROM event_log
+      WHERE machine_id NOT IN (${placeholders})
+      ORDER BY timestamp
+    `;
+    // Query for recent events from known machines
+    const knownMachineQuery = `
+      SELECT event_id, machine_id, voter_id, event_type, timestamp, event_data
+      FROM event_log
+      WHERE (${machineIds
+        .map(() => `( machine_id = ? AND event_id > ? )`)
+        .join(' OR ')})
+      ORDER BY timestamp
+    `;
+    const queryParams = [
+      ...machineIds.flatMap((id) => [id, knownMachines[id]]),
+    ];
+    interface EventRow {
+      event_id: integer;
+      machine_id: string;
+      voter_id: string;
+      event_type: EventType;
+      timestamp: string;
+      event_data: string;
+    }
+    return this.client.transaction(() => {
+      const rowsForMissingMachines = this.client.all(
+        unknownMachineQuery,
+        ...machineIds
+      ) as EventRow[];
+      const rowsForKnownMachines =
+        machineIds.length > 0
+          ? (this.client.all(knownMachineQuery, ...queryParams) as EventRow[])
+          : [];
+      const events: PollbookEvent[] = [];
+      for (const row of [...rowsForMissingMachines, ...rowsForKnownMachines]) {
+        switch (row.event_type) {
+          case EventType.VoterCheckIn: {
+            events.push(
+              typedAs<VoterCheckInEvent>({
+                type: EventType.VoterCheckIn,
+                eventId: row.event_id,
+                machineId: row.machine_id,
+                timestamp: row.timestamp,
+                voterId: row.voter_id,
+                checkInData: safeParseJson(
+                  row.event_data,
+                  VoterCheckInSchema
+                ).unsafeUnwrap(),
+              })
+            );
+            break;
+          }
+          case EventType.UndoVoterCheckIn: {
+            throw new Error('Undoing voter check-ins is not yet implemented');
+          }
+          default: {
+            throwIllegalValue(row.event_type);
+          }
+        }
+      }
+      return events;
+    });
+  }
+
+  getPollbookServicesByName(): Record<string, PollBookService> {
+    return data.connectedPollbooks || {};
   }
 
   setPollbookServiceForName(
@@ -253,11 +455,15 @@ export class Store {
     data.connectedPollbooks[avahiServiceName] = pollbookService;
   }
 
-  getAllConnectedPollbookServices(): PollBookService[] {
+  getAllConnectedPollbookServices(): ConnectedPollbookService[] {
     if (!data.connectedPollbooks) {
       return [];
     }
-    return Object.values(data.connectedPollbooks);
+    return Object.values(data.connectedPollbooks).filter(
+      (service): service is ConnectedPollbookService =>
+        service.status === PollbookConnectionStatus.Connected &&
+        !!service.apiClient
+    );
   }
 
   cleanupStalePollbookServices(): void {
@@ -271,11 +477,12 @@ export class Store {
         Date.now() - pollbookService.lastSeen.getTime() >
         MACHINE_DISCONNECTED_TIMEOUT
       ) {
-        debug(
-          'Cleaning up stale pollbook service for machineId %s',
-          pollbookService.machineId
-        );
-        delete data.connectedPollbooks[avahiServiceName];
+        debug('Removing stale pollbook service %s', avahiServiceName);
+        this.setPollbookServiceForName(avahiServiceName, {
+          ...pollbookService,
+          status: PollbookConnectionStatus.LostConnection,
+          apiClient: undefined,
+        });
       }
     }
   }

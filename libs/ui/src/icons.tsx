@@ -59,6 +59,7 @@ import {
   faGripLines,
   faImage,
   faTowerBroadcast,
+  faPrint,
 } from '@fortawesome/free-solid-svg-icons';
 import {
   faXmarkCircle,
@@ -82,6 +83,7 @@ export const ICON_COLORS = [
   'danger',
   'inverse',
   'inversePrimary',
+  'inverseWarning',
 ] as const;
 
 export type IconColor = (typeof ICON_COLORS)[number];
@@ -118,6 +120,7 @@ function iconColor(theme: UiTheme, color?: IconColor) {
     danger: colors.dangerAccent,
     inverse: colors.onInverse,
     inversePrimary: colors.inversePrimary,
+    inverseWarning: 'rgb(255 163 84)',
     default: undefined,
   }[color];
 }
@@ -355,6 +358,10 @@ export const Icons = {
 
   Play(props) {
     return <FaIcon {...props} type={faPlay} />;
+  },
+
+  Print(props) {
+    return <FaIcon {...props} type={faPrint} />;
   },
 
   Question(props) {

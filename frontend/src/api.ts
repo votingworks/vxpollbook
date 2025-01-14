@@ -111,27 +111,15 @@ export const updateSessionExpiry = {
   },
 } as const;
 
-export const getPrinterStatus = {
+export const getDeviceStatuses = {
   queryKey(): QueryKey {
-    return ['getPrinterStatus'];
-  },
-  useQuery(options: { refetchInterval?: number } = {}) {
-    const apiClient = useApiClient();
-    return useQuery(
-      this.queryKey(),
-      () => apiClient.getPrinterStatus(),
-      options
-    );
-  },
-} as const;
-
-export const getConnectedPollbooks = {
-  queryKey(): QueryKey {
-    return ['getConnectedPollbooks'];
+    return ['getDeviceStatuses'];
   },
   useQuery() {
     const apiClient = useApiClient();
-    return useQuery(this.queryKey(), () => apiClient.getConnectedPollbooks());
+    return useQuery(this.queryKey(), () => apiClient.getDeviceStatuses(), {
+      refetchInterval: 1000,
+    });
   },
 } as const;
 

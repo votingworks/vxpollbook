@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   AppLogo,
+  getBatteryIcon,
   Icons,
   LeftNav,
   LogoCircleWhiteOnPurple,
@@ -10,8 +11,13 @@ import {
 } from '@votingworks/ui';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
+import type { PrinterStatus } from '@votingworks/types';
+import type { NetworkStatus } from '@votingworks/pollbook-backend';
+import type { UsbDriveStatus } from '@votingworks/usb-drive';
+import type { BatteryInfo } from '@votingworks/backend';
+import { format } from '@votingworks/utils';
 import { Row } from './layout';
-import { getConnectedPollbooks } from './api';
+import { getDeviceStatuses } from './api';
 
 export const DeviceInfoBar = styled(Row)`
   align-items: center;
@@ -32,40 +38,60 @@ export const Header = styled(MainHeader)`
   gap: 0.5rem;
 `;
 
-function NetworkStatus() {
-  const getConnectedPollbooksQuery = getConnectedPollbooks.useQuery();
+function NetworkStatus({ status }: { status: NetworkStatus }) {
   return (
-    <span>
-      <Icons.Antenna color="inverse" />{' '}
-      {getConnectedPollbooksQuery.data
-        ? getConnectedPollbooksQuery.data.length
-        : '_'}
-    </span>
+    <Row style={{ gap: '0.25rem', alignItems: 'center' }}>
+      <Icons.Antenna color="inverse" />
+      {status.pollbooks.length}
+    </Row>
   );
 }
 
-function BatteryStatus() {
+function BatteryStatus({ status }: { status?: BatteryInfo }) {
   return (
-    <span>
-      <Icons.BatteryFull color="inverse" /> 100%
-    </span>
+    <Row style={{ gap: '0.25rem', alignItems: 'center' }}>
+      {getBatteryIcon(status, true)}
+      {status && !status.discharging && (
+        <Icons.Bolt style={{ fontSize: '0.8em' }} color="inverse" />
+      )}
+      {status && format.percent(status.level)}
+      {status && status.level < 0.25 && status.discharging && (
+        <Icons.Warning color="inverseWarning" />
+      )}
+    </Row>
   );
 }
 
-function UsbStatus() {
+function UsbStatus({ status }: { status: UsbDriveStatus }) {
   return (
-    <span>
+    <Row style={{ gap: '0.25rem', alignItems: 'center' }}>
       <Icons.UsbDrive color="inverse" />
-    </span>
+      {status.status !== 'mounted' && <Icons.Warning color="inverseWarning" />}
+    </Row>
+  );
+}
+
+function PrinterStatus({ status }: { status: PrinterStatus }) {
+  return (
+    <Row style={{ gap: '0.25rem', alignItems: 'center' }}>
+      <Icons.Print color="inverse" />
+      {!status.connected && <Icons.Warning color="inverseWarning" />}
+    </Row>
   );
 }
 
 function Statuses() {
+  const getDeviceStatusesQuery = getDeviceStatuses.useQuery();
+  if (!getDeviceStatusesQuery.isSuccess) {
+    return null;
+  }
+  const { network, battery, usbDrive, printer } = getDeviceStatusesQuery.data;
   return (
     <Row style={{ gap: '1.5rem' }}>
-      <NetworkStatus />
-      <UsbStatus />
-      <BatteryStatus />
+      <NetworkStatus status={network} />
+      <PrinterStatus status={printer} />
+      <UsbStatus status={usbDrive} />
+      <BatteryStatus status={battery} />
     </Row>
   );
 }

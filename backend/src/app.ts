@@ -24,8 +24,10 @@ import {
 } from '@votingworks/auth';
 import { Printer, renderToPdf } from '@votingworks/printing';
 import React from 'react';
+import { getBatteryInfo } from '@votingworks/backend';
 import { Workspace } from './workspace';
 import {
+  DeviceStatuses,
   Election,
   ElectionSchema,
   PollbookPackage,
@@ -262,6 +264,27 @@ function buildApi(context: AppContext) {
       );
     },
 
+    async getDeviceStatuses(): Promise<DeviceStatuses> {
+      const [usbDriveStatus, printerStatus, batteryStatus] = await Promise.all([
+        usbDrive.status(),
+        printer.status(),
+        getBatteryInfo(),
+      ]);
+      return {
+        usbDrive: usbDriveStatus,
+        printer: printerStatus,
+        battery: batteryStatus ?? undefined,
+        network: {
+          pollbooks: store
+            .getAllConnectedPollbookServices()
+            .map((pollbook) => ({
+              machineId: pollbook.machineId,
+              lastSeen: pollbook.lastSeen,
+            })),
+        },
+      };
+    },
+
     getPrinterStatus(): Promise<PrinterStatus> {
       return printer.status();
     },
@@ -336,15 +359,6 @@ function buildApi(context: AppContext) {
 
     getMachineId(): string {
       return machineId;
-    },
-
-    getConnectedPollbooks(): Array<
-      Pick<PollBookService, 'machineId' | 'lastSeen'>
-    > {
-      return store.getAllConnectedPollbookServices().map((pollbook) => ({
-        machineId: pollbook.machineId,
-        lastSeen: pollbook.lastSeen,
-      }));
     },
   });
 }

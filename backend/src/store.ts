@@ -12,16 +12,17 @@ import {
 } from '@votingworks/basics';
 import { safeParseJson } from '@votingworks/types';
 import { integer } from '@votingworks/types/src/cdf/cast-vote-records';
-import { P } from '@votingworks/ui';
 import { rootDebug } from './debug';
 import {
   ConnectedPollbookService,
   Election,
   ElectionSchema,
+  EventDbRow,
   EventType,
   PollbookConnectionStatus,
   PollbookEvent,
   PollBookService,
+  UndoVoterCheckInEvent,
   Voter,
   VoterCheckInEvent,
   VoterCheckInSchema,
@@ -84,10 +85,11 @@ export class Store {
       `
       select voter_id, event_type, event_data
       from event_log
-      where event_type = ?
+      where event_type IN (?, ?)
       order by timestamp
       `,
-      EventType.VoterCheckIn
+      EventType.VoterCheckIn,
+      EventType.UndoVoterCheckIn
     ) as Array<{
       voter_id: string;
       event_type: EventType;
@@ -97,14 +99,30 @@ export class Store {
       return voters;
     }
     for (const row of rows) {
-      const voter = find(voters, (v) => v.voterId === row.voter_id);
-      if (!voter) {
-        continue;
+      switch (row.event_type) {
+        case EventType.VoterCheckIn: {
+          const voter = find(voters, (v) => v.voterId === row.voter_id);
+          if (!voter) {
+            continue;
+          }
+          voter.checkIn = safeParseJson(
+            row.event_data,
+            VoterCheckInSchema
+          ).unsafeUnwrap();
+          break;
+        }
+        case EventType.UndoVoterCheckIn: {
+          const voter = find(voters, (v) => v.voterId === row.voter_id);
+          if (!voter) {
+            continue;
+          }
+          voter.checkIn = undefined;
+          break;
+        }
+        default: {
+          throwIllegalValue(row.event_type);
+        }
       }
-      voter.checkIn = safeParseJson(
-        row.event_data,
-        VoterCheckInSchema
-      ).unsafeUnwrap();
     }
     return voters;
   }
@@ -126,45 +144,6 @@ export class Store {
       );
     }
     return this.applyEventsToVoters(data.voters);
-  }
-  private async broadcastEventToNetwork(event: PollbookEvent): Promise<void> {
-    debug('broadcasting to network');
-    if (!data.connectedPollbooks) {
-      return;
-    }
-    const pollbookServices = this.getAllConnectedPollbookServices();
-    for (const pollbookService of pollbookServices) {
-      let retries = 3;
-      while (retries > 0) {
-        try {
-          debug(
-            'try to broadcast to pollbook service',
-            pollbookService.machineId
-          );
-          const isProcessed = await pollbookService.apiClient.receiveEvent({
-            pollbookEvent: event,
-          });
-          assert(isProcessed);
-          debug('success');
-          break; // Exit the retry loop if the event is processed successfully
-        } catch (error) {
-          retries -= 1;
-          debug(
-            'Failed to broadcast event to pollbook service %s: %s. Retries left: %d',
-            pollbookService.machineId,
-            error,
-            retries
-          );
-          if (retries === 0) {
-            debug(
-              'Removing pollbook service %s after 3 failed attempts',
-              pollbookService.machineId
-            );
-            delete data.connectedPollbooks[pollbookService.machineId];
-          }
-        }
-      }
-    }
   }
 
   saveEvents(pollbookEvents: PollbookEvent[]): boolean {
@@ -195,7 +174,17 @@ export class Store {
           return true;
         }
         case EventType.UndoVoterCheckIn: {
-          throw new Error('Undoing voter check-ins is not yet implemented');
+          const event = pollbookEvent as UndoVoterCheckInEvent;
+          this.client.run(
+            'INSERT OR IGNORE INTO event_log (event_id, machine_id, voter_id, event_type, timestamp, event_data) VALUES (?, ?, ?, ?, ?, ?)',
+            event.eventId,
+            event.machineId,
+            event.voterId,
+            event.type,
+            event.timestamp,
+            '{}' // No event data for this event type.
+          );
+          return true;
         }
         default: {
           throwIllegalValue(pollbookEvent.type);
@@ -266,6 +255,11 @@ export class Store {
   deleteElectionAndVoters(): void {
     data.election = undefined;
     data.voters = undefined;
+    this.client.transaction(() => {
+      this.client.run('delete from elections');
+      this.client.run('delete from voters');
+      this.client.run('delete from event_log');
+    });
   }
 
   groupVotersAlphabeticallyByLastName(): Array<Voter[]> {
@@ -343,22 +337,35 @@ export class Store {
       machineId,
     };
     const eventId = this.getNextEventId();
-    this.client.run(
-      'INSERT INTO event_log (event_id, machine_id, voter_id, event_type, event_data) VALUES (?, ?, ?, ?, ?)',
-      eventId,
-      machineId,
-      voterId,
-      EventType.VoterCheckIn,
-      JSON.stringify(voter.checkIn)
+    this.saveEvent(
+      typedAs<VoterCheckInEvent>({
+        type: EventType.VoterCheckIn,
+        eventId,
+        machineId,
+        voterId,
+        timestamp: timestamp.toISOString(),
+        checkInData: voter.checkIn,
+      })
     );
     return { voter, count: this.getCheckInCount() };
   }
 
   recordUndoVoterCheckIn(voterId: string): Voter {
-    assert(data.voters);
-    const voter = find(data.voters, (v) => v.voterId === voterId);
+    const voters = this.getVoters();
+    assert(voters);
+    const voter = find(voters, (v) => v.voterId === voterId);
     voter.checkIn = undefined;
-    // TODO CARO implement
+    const eventId = this.getNextEventId();
+    const timestamp = new Date();
+    this.saveEvent(
+      typedAs<UndoVoterCheckInEvent>({
+        type: EventType.UndoVoterCheckIn,
+        eventId,
+        machineId: this.machineId,
+        voterId,
+        timestamp: timestamp.toISOString(),
+      })
+    );
     return voter;
   }
 
@@ -393,22 +400,15 @@ export class Store {
     const queryParams = [
       ...machineIds.flatMap((id) => [id, knownMachines[id]]),
     ];
-    interface EventRow {
-      event_id: integer;
-      machine_id: string;
-      voter_id: string;
-      event_type: EventType;
-      timestamp: string;
-      event_data: string;
-    }
+
     return this.client.transaction(() => {
       const rowsForMissingMachines = this.client.all(
         unknownMachineQuery,
         ...machineIds
-      ) as EventRow[];
+      ) as EventDbRow[];
       const rowsForKnownMachines =
         machineIds.length > 0
-          ? (this.client.all(knownMachineQuery, ...queryParams) as EventRow[])
+          ? (this.client.all(knownMachineQuery, ...queryParams) as EventDbRow[])
           : [];
       const events: PollbookEvent[] = [];
       for (const row of [...rowsForMissingMachines, ...rowsForKnownMachines]) {
@@ -430,7 +430,16 @@ export class Store {
             break;
           }
           case EventType.UndoVoterCheckIn: {
-            throw new Error('Undoing voter check-ins is not yet implemented');
+            events.push(
+              typedAs<UndoVoterCheckInEvent>({
+                type: EventType.UndoVoterCheckIn,
+                eventId: row.event_id,
+                machineId: row.machine_id,
+                timestamp: row.timestamp,
+                voterId: row.voter_id,
+              })
+            );
+            break;
           }
           default: {
             throwIllegalValue(row.event_type);

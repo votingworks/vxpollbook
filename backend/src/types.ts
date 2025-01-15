@@ -161,6 +161,11 @@ export interface VoterCheckInEvent extends PollbookEvent {
   checkInData: VoterCheckIn;
 }
 
+export interface UndoVoterCheckInEvent extends PollbookEvent {
+  type: EventType.UndoVoterCheckIn;
+  voterId: string;
+}
+
 export interface VoterSearchParams {
   lastName: string;
   firstName: string;
@@ -207,4 +212,13 @@ export enum PollbookConnectionStatus {
   ShutDown = 'ShutDown',
   LostConnection = 'LostConnection',
   WrongElection = 'WrongElection',
+}
+
+export interface EventDbRow {
+  event_id: number;
+  machine_id: string;
+  voter_id: string;
+  event_type: EventType;
+  timestamp: string;
+  event_data: string;
 }

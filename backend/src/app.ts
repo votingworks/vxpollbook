@@ -34,7 +34,6 @@ import {
   PollbookConnectionStatus,
   PollbookEvent,
   PollbookPackage,
-  PollBookService,
   Voter,
   VoterIdentificationMethod,
   VoterSearchParams,

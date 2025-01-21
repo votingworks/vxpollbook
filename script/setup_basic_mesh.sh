@@ -38,7 +38,4 @@ echo "Bringing up the network and joining pollbook_mesh"
 sudo ip link set mesh0 up
 sudo iw dev mesh0 mesh join pollbook_mesh
 
-# Use avahi-autoipd to get a link-local IP address
-sudo avahi-autoipd -D -w mesh0
-
 echo "Successfully joined the network."

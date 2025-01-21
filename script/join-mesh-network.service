@@ -1,9 +1,12 @@
 [Unit]
 Description=Join mesh network on boot and resume from suspend
+After=sleep.target suspend.target
 
 [Service]
 Type=oneshot
+ExecStartPre=/bin/systemctl stop avahi-autoipd.service
 ExecStart=sudo /bin/bash /vx/scripts/setup_basic_mesh.sh
+ExecStartPost=/bin/systemctl start avahi-autoipd.service
 
 [Install]
-WantedBy=multi-user.target sleep.target
+WantedBy=multi-user.target suspend.target sleep.target

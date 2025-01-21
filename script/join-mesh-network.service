@@ -5,8 +5,7 @@ After=sleep.target suspend.target
 [Service]
 Type=oneshot
 ExecStart=sudo /bin/bash /vx/scripts/setup_basic_mesh.sh
-ExecStartPre=/bin/systemctl stop avahi-autoipd.service
-ExecStartPost=/bin/systemctl start avahi-autoipd.service
+ExecStartPost=/bin/systemctl restart avahi-autoipd.service
 
 [Install]
 WantedBy=multi-user.target suspend.target sleep.target

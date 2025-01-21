@@ -17,4 +17,5 @@ sudo systemctl enable join-mesh-network
 sudo systemctl enable avahi-daemon
 sudo systemctl enable avahi-autoipd
 
+sudo systemctl start avahi-autoipd
 sudo systemctl start join-mesh-network

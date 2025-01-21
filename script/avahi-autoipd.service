@@ -1,13 +1,7 @@
 [Unit]
 Description=Run avahi-autoipd for mesh network
-After=join-mesh-network.service
 
 [Service]
 Type=simple
 ExecStart=sudo avahi-autoipd -D -w mesh0
 RemainAfterExit=Yes
-Restart=on-failure
-RestartSec=5s
-
-[Install]
-WantedBy=multi-user.target suspend.target sleep.target

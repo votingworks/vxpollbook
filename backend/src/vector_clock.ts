@@ -36,7 +36,6 @@ export function compareVectorClocks(
   clock1: VectorClock,
   clock2: VectorClock
 ): number {
-  console.log(clock1, clock2);
   let isBefore = false;
   let isAfter = false;
   const keys = new Set([...Object.keys(clock1), ...Object.keys(clock2)]);

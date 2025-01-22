@@ -60,17 +60,10 @@ export class Store {
       this.vectorClock[this.machineId] = 0;
     }
     this.vectorClock[this.machineId] += 1;
-    console.log('Incremented vector clock', this.vectorClock);
     return this.vectorClock[this.machineId];
   }
 
   private updateLocalVectorClock(remoteClock: VectorClock) {
-    console.log(
-      'Merging clocks, local:',
-      this.vectorClock,
-      'remote:',
-      remoteClock
-    );
     this.vectorClock = mergeVectorClocks(this.vectorClock, remoteClock);
   }
 
@@ -119,7 +112,6 @@ export class Store {
     if (!rows) {
       return voters;
     }
-    console.log(rows);
 
     const events = rows.map((row) => ({
       ...row,
@@ -128,7 +120,6 @@ export class Store {
         VectorClockSchema
       ).unsafeUnwrap(),
     }));
-    console.log(events);
 
     // Order events by the vector clocks, concurrent events are ordered by machine_id.
     const orderedEvents = [...events].sort((a, b) => {
@@ -143,6 +134,7 @@ export class Store {
     });
 
     for (const event of orderedEvents) {
+      this.updateLocalVectorClock(event.vector_clock);
       switch (event.event_type) {
         case EventType.VoterCheckIn: {
           const voter = find(voters, (v) => v.voterId === event.voter_id);

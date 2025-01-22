@@ -148,11 +148,16 @@ export interface MachineInformation {
   configuredElectionId?: string;
 }
 
+export type VectorClock = Record<string, number>;
+
+export const VectorClockSchema: z.ZodSchema<VectorClock> = z.record(z.number());
+
 export interface PollbookEvent {
   type: EventType;
   eventId: number;
   machineId: string;
   timestamp: string;
+  vectorClock: VectorClock;
 }
 
 export interface VoterCheckInEvent extends PollbookEvent {
@@ -221,4 +226,5 @@ export interface EventDbRow {
   event_type: EventType;
   timestamp: string;
   event_data: string;
+  vector_clock: string;
 }

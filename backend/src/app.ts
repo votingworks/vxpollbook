@@ -34,6 +34,7 @@ import {
   PollbookConnectionStatus,
   PollbookEvent,
   PollbookPackage,
+  VectorClock,
   Voter,
   VoterIdentificationMethod,
   VoterSearchParams,
@@ -256,9 +257,9 @@ async function setupMachineNetworking({
             );
           }
           // Sync events from this pollbook service.
-          const knownMachines = workspace.store.getKnownMachinesWithEventIds();
+          const currentClock = workspace.store.getCurrentClock();
           const events = await apiClient.getEvents({
-            knownMachines,
+            currentClock,
           });
           workspace.store.saveEvents(events);
 
@@ -412,10 +413,8 @@ function buildApi(context: AppContext) {
       return store.saveEvent(input.pollbookEvent);
     },
 
-    getEvents(input: {
-      knownMachines: Record<string, number>;
-    }): PollbookEvent[] {
-      return store.getNewEvents(input.knownMachines);
+    getEvents(input: { currentClock: VectorClock }): PollbookEvent[] {
+      return store.getNewEvents(input.currentClock);
     },
   });
 }

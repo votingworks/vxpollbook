@@ -29,8 +29,11 @@ import {
   VoterIdentificationMethod,
   VoterSchema,
   VoterSearchParams,
+  VectorClock,
+  VectorClockSchema,
 } from './types';
 import { MACHINE_DISCONNECTED_TIMEOUT } from './globals';
+import { mergeVectorClocks, compareVectorClocks } from './vector_clock';
 
 const debug = rootDebug;
 
@@ -38,14 +41,7 @@ const data: {
   voters?: Voter[];
   election?: Election;
   connectedPollbooks?: Record<string, PollBookService>;
-  lastEventId?: integer;
 } = {};
-
-// function convertSqliteTimestampToIso8601(
-//   sqliteTimestamp: string
-// ): Iso8601Timestamp {
-//   return new Date(sqliteTimestamp).toISOString();
-// }
 
 const SchemaPath = join(__dirname, '../schema.sql');
 
@@ -54,6 +50,29 @@ export class Store {
     private readonly client: DbClient,
     private readonly machineId: string
   ) {}
+
+  private vectorClock: VectorClock = {};
+
+  // Increments the vector clock for the current machine and returns the new value.
+  // This function MUST be called before saving an event for the current machine.
+  private incrementVectorClock(): number {
+    if (!this.vectorClock[this.machineId]) {
+      this.vectorClock[this.machineId] = 0;
+    }
+    this.vectorClock[this.machineId] += 1;
+    console.log('Incremented vector clock', this.vectorClock);
+    return this.vectorClock[this.machineId];
+  }
+
+  private updateLocalVectorClock(remoteClock: VectorClock) {
+    console.log(
+      'Merging clocks, local:',
+      this.vectorClock,
+      'remote:',
+      remoteClock
+    );
+    this.vectorClock = mergeVectorClocks(this.vectorClock, remoteClock);
+  }
 
   getDbPath(): string {
     return this.client.getDatabasePath();
@@ -83,10 +102,9 @@ export class Store {
   private applyEventsToVoters(voters: Voter[]): Voter[] {
     const rows = this.client.all(
       `
-      select voter_id, event_type, event_data
+      select voter_id, event_type, event_data, machine_id, vector_clock
       from event_log
       where event_type IN (?, ?)
-      order by timestamp
       `,
       EventType.VoterCheckIn,
       EventType.UndoVoterCheckIn
@@ -94,25 +112,51 @@ export class Store {
       voter_id: string;
       event_type: EventType;
       event_data: string;
+      machine_id: string;
+      vector_clock: string;
     }>;
+
     if (!rows) {
       return voters;
     }
-    for (const row of rows) {
-      switch (row.event_type) {
+    console.log(rows);
+
+    const events = rows.map((row) => ({
+      ...row,
+      vector_clock: safeParseJson(
+        row.vector_clock,
+        VectorClockSchema
+      ).unsafeUnwrap(),
+    }));
+    console.log(events);
+
+    // Order events by the vector clocks, concurrent events are ordered by machine_id.
+    const orderedEvents = [...events].sort((a, b) => {
+      const clockComparison = compareVectorClocks(
+        a.vector_clock,
+        b.vector_clock
+      );
+      if (clockComparison !== 0) {
+        return clockComparison;
+      }
+      return a.machine_id.localeCompare(b.machine_id);
+    });
+
+    for (const event of orderedEvents) {
+      switch (event.event_type) {
         case EventType.VoterCheckIn: {
-          const voter = find(voters, (v) => v.voterId === row.voter_id);
+          const voter = find(voters, (v) => v.voterId === event.voter_id);
           if (!voter) {
             continue;
           }
           voter.checkIn = safeParseJson(
-            row.event_data,
+            event.event_data,
             VoterCheckInSchema
           ).unsafeUnwrap();
           break;
         }
         case EventType.UndoVoterCheckIn: {
-          const voter = find(voters, (v) => v.voterId === row.voter_id);
+          const voter = find(voters, (v) => v.voterId === event.voter_id);
           if (!voter) {
             continue;
           }
@@ -120,7 +164,7 @@ export class Store {
           break;
         }
         default: {
-          throwIllegalValue(row.event_type);
+          throwIllegalValue(event.event_type);
         }
       }
     }
@@ -158,31 +202,35 @@ export class Store {
 
   saveEvent(pollbookEvent: PollbookEvent): boolean {
     try {
+      this.updateLocalVectorClock(pollbookEvent.vectorClock);
+
       switch (pollbookEvent.type) {
         case EventType.VoterCheckIn: {
           const event = pollbookEvent as VoterCheckInEvent;
           // Fail gracefully if the event was already saved.
           this.client.run(
-            'INSERT OR IGNORE INTO event_log (event_id, machine_id, voter_id, event_type, timestamp, event_data) VALUES (?, ?, ?, ?, ?, ?)',
+            'INSERT INTO event_log (event_id, machine_id, voter_id, event_type, timestamp, event_data, vector_clock) VALUES (?, ?, ?, ?, ?, ?, ?)',
             event.eventId,
             event.machineId,
             event.voterId,
             event.type,
             event.timestamp,
-            JSON.stringify(event.checkInData)
+            JSON.stringify(event.checkInData),
+            JSON.stringify(event.vectorClock)
           );
           return true;
         }
         case EventType.UndoVoterCheckIn: {
           const event = pollbookEvent as UndoVoterCheckInEvent;
           this.client.run(
-            'INSERT OR IGNORE INTO event_log (event_id, machine_id, voter_id, event_type, timestamp, event_data) VALUES (?, ?, ?, ?, ?, ?)',
+            'INSERT INTO event_log (event_id, machine_id, voter_id, event_type, timestamp, event_data, vector_clock) VALUES (?, ?, ?, ?, ?, ?, ?)',
             event.eventId,
             event.machineId,
             event.voterId,
             event.type,
             event.timestamp,
-            '{}' // No event data for this event type.
+            '{}', // No event data for this event type.
+            JSON.stringify(event.vectorClock)
           );
           return true;
         }
@@ -297,23 +345,8 @@ export class Store {
     return row.last_event_id;
   }
 
-  getKnownMachinesWithEventIds(): Record<string, integer> {
-    const rows = this.client.all(
-      'SELECT machine_id, max(event_id) as last_event_id FROM event_log GROUP BY machine_id'
-    ) as Array<{ machine_id: string; last_event_id: integer }>;
-    const machines: Record<string, integer> = {};
-    for (const row of rows) {
-      machines[row.machine_id] = row.last_event_id;
-    }
-    return machines;
-  }
-
-  private getNextEventId() {
-    if (!data.lastEventId) {
-      data.lastEventId = this.getLastSeenEventIdForMachine(this.machineId);
-    }
-    data.lastEventId += 1;
-    return data.lastEventId;
+  getCurrentClock(): VectorClock {
+    return this.vectorClock;
   }
 
   recordVoterCheckIn({
@@ -336,7 +369,7 @@ export class Store {
       identificationMethod,
       machineId,
     };
-    const eventId = this.getNextEventId();
+    const eventId = this.incrementVectorClock();
     this.saveEvent(
       typedAs<VoterCheckInEvent>({
         type: EventType.VoterCheckIn,
@@ -345,6 +378,7 @@ export class Store {
         voterId,
         timestamp: timestamp.toISOString(),
         checkInData: voter.checkIn,
+        vectorClock: this.vectorClock,
       })
     );
     return { voter, count: this.getCheckInCount() };
@@ -355,7 +389,7 @@ export class Store {
     assert(voters);
     const voter = find(voters, (v) => v.voterId === voterId);
     voter.checkIn = undefined;
-    const eventId = this.getNextEventId();
+    const eventId = this.incrementVectorClock();
     const timestamp = new Date();
     this.saveEvent(
       typedAs<UndoVoterCheckInEvent>({
@@ -364,6 +398,7 @@ export class Store {
         machineId: this.machineId,
         voterId,
         timestamp: timestamp.toISOString(),
+        vectorClock: this.vectorClock,
       })
     );
     return voter;
@@ -378,28 +413,27 @@ export class Store {
     ).length;
   }
 
-  getNewEvents(knownMachines: Record<string, integer>): PollbookEvent[] {
-    const machineIds = Object.keys(knownMachines);
+  // Returns the events that the fromClock does not know about.
+  getNewEvents(fromClock: VectorClock): PollbookEvent[] {
+    const machineIds = Object.keys(fromClock);
     const placeholders = machineIds.map(() => '?').join(', ');
     // Query for all events from unknown machines.
     const unknownMachineQuery = `
-      SELECT event_id, machine_id, voter_id, event_type, timestamp, event_data
+      SELECT event_id, machine_id, voter_id, event_type, timestamp, vector_clock, event_data
       FROM event_log
       WHERE machine_id NOT IN (${placeholders})
       ORDER BY timestamp
     `;
     // Query for recent events from known machines
     const knownMachineQuery = `
-      SELECT event_id, machine_id, voter_id, event_type, timestamp, event_data
+      SELECT event_id, machine_id, voter_id, event_type, timestamp, vector_clock, event_data
       FROM event_log
       WHERE (${machineIds
         .map(() => `( machine_id = ? AND event_id > ? )`)
         .join(' OR ')})
       ORDER BY timestamp
     `;
-    const queryParams = [
-      ...machineIds.flatMap((id) => [id, knownMachines[id]]),
-    ];
+    const queryParams = [...machineIds.flatMap((id) => [id, fromClock[id]])];
 
     return this.client.transaction(() => {
       const rowsForMissingMachines = this.client.all(
@@ -425,6 +459,10 @@ export class Store {
                   row.event_data,
                   VoterCheckInSchema
                 ).unsafeUnwrap(),
+                vectorClock: safeParseJson(
+                  row.vector_clock,
+                  VectorClockSchema
+                ).unsafeUnwrap(),
               })
             );
             break;
@@ -437,6 +475,10 @@ export class Store {
                 machineId: row.machine_id,
                 timestamp: row.timestamp,
                 voterId: row.voter_id,
+                vectorClock: safeParseJson(
+                  row.vector_clock,
+                  VectorClockSchema
+                ).unsafeUnwrap(),
               })
             );
             break;

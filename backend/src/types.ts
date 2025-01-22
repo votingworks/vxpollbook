@@ -184,7 +184,6 @@ export interface PollbookPackage {
 export interface PollBookService {
   apiClient?: grout.Client<Api>;
   machineId: string;
-  lastEventIdReceived?: string;
   lastSeen: Date;
   status: PollbookConnectionStatus;
 }

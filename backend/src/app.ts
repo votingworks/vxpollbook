@@ -358,12 +358,7 @@ function buildApi(context: AppContext) {
       voterId: string;
       identificationMethod: VoterIdentificationMethod;
     }): Promise<boolean> {
-      const timestamp = new Date();
-      const { voter, count } = store.recordVoterCheckIn({
-        ...input,
-        machineId,
-        timestamp,
-      });
+      const { voter, count } = store.recordVoterCheckIn(input);
 
       const receipt = React.createElement(CheckInReceipt, {
         voter,

@@ -40,8 +40,12 @@ const debug = rootDebug;
 const data: {
   voters?: Voter[];
   election?: Election;
-  connectedPollbooks?: Record<string, PollBookService>;
-} = {};
+  connectedPollbooks: Record<string, PollBookService>;
+  vectorClock: VectorClock;
+} = {
+  connectedPollbooks: {},
+  vectorClock: {},
+};
 
 const SchemaPath = join(__dirname, '../schema.sql');
 
@@ -51,20 +55,18 @@ export class Store {
     private readonly machineId: string
   ) {}
 
-  private vectorClock: VectorClock = {};
-
   // Increments the vector clock for the current machine and returns the new value.
   // This function MUST be called before saving an event for the current machine.
   private incrementVectorClock(): number {
-    if (!this.vectorClock[this.machineId]) {
-      this.vectorClock[this.machineId] = 0;
+    if (!data.vectorClock[this.machineId]) {
+      data.vectorClock[this.machineId] = 0;
     }
-    this.vectorClock[this.machineId] += 1;
-    return this.vectorClock[this.machineId];
+    data.vectorClock[this.machineId] += 1;
+    return data.vectorClock[this.machineId];
   }
 
   private updateLocalVectorClock(remoteClock: VectorClock) {
-    this.vectorClock = mergeVectorClocks(this.vectorClock, remoteClock);
+    data.vectorClock = mergeVectorClocks(data.vectorClock, remoteClock);
   }
 
   getDbPath(): string {
@@ -134,6 +136,7 @@ export class Store {
     });
 
     for (const event of orderedEvents) {
+      // Most of the time this should be a no-op, but when a node is first starting up it will catch up the local clock.
       this.updateLocalVectorClock(event.vector_clock);
       switch (event.event_type) {
         case EventType.VoterCheckIn: {
@@ -300,6 +303,7 @@ export class Store {
       this.client.run('delete from voters');
       this.client.run('delete from event_log');
     });
+    data.vectorClock = {};
   }
 
   groupVotersAlphabeticallyByLastName(): Array<Voter[]> {
@@ -338,39 +342,35 @@ export class Store {
   }
 
   getCurrentClock(): VectorClock {
-    return this.vectorClock;
+    return data.vectorClock;
   }
 
   recordVoterCheckIn({
     voterId,
     identificationMethod,
-    machineId,
-    timestamp,
   }: {
     voterId: string;
     identificationMethod: VoterIdentificationMethod;
-    machineId: string;
-    timestamp: Date;
   }): { voter: Voter; count: number } {
     const voters = this.getVoters();
     assert(voters);
-    assert(machineId === this.machineId);
     const voter = find(voters, (v) => v.voterId === voterId);
+    const timestamp = new Date();
     voter.checkIn = {
-      timestamp: timestamp.toISOString(),
       identificationMethod,
-      machineId,
+      machineId: this.machineId,
+      timestamp: timestamp.toISOString(),
     };
     const eventId = this.incrementVectorClock();
     this.saveEvent(
       typedAs<VoterCheckInEvent>({
         type: EventType.VoterCheckIn,
         eventId,
-        machineId,
+        machineId: this.machineId,
         voterId,
         timestamp: timestamp.toISOString(),
         checkInData: voter.checkIn,
-        vectorClock: this.vectorClock,
+        vectorClock: data.vectorClock,
       })
     );
     return { voter, count: this.getCheckInCount() };
@@ -390,7 +390,7 @@ export class Store {
         machineId: this.machineId,
         voterId,
         timestamp: timestamp.toISOString(),
-        vectorClock: this.vectorClock,
+        vectorClock: data.vectorClock,
       })
     );
     return voter;
@@ -485,23 +485,17 @@ export class Store {
   }
 
   getPollbookServicesByName(): Record<string, PollBookService> {
-    return data.connectedPollbooks || {};
+    return data.connectedPollbooks;
   }
 
   setPollbookServiceForName(
     avahiServiceName: string,
     pollbookService: PollBookService
   ): void {
-    if (!data.connectedPollbooks) {
-      data.connectedPollbooks = {};
-    }
     data.connectedPollbooks[avahiServiceName] = pollbookService;
   }
 
   getAllConnectedPollbookServices(): ConnectedPollbookService[] {
-    if (!data.connectedPollbooks) {
-      return [];
-    }
     return Object.values(data.connectedPollbooks).filter(
       (service): service is ConnectedPollbookService =>
         service.status === PollbookConnectionStatus.Connected &&
@@ -510,9 +504,6 @@ export class Store {
   }
 
   cleanupStalePollbookServices(): void {
-    if (!data.connectedPollbooks) {
-      return;
-    }
     for (const [avahiServiceName, pollbookService] of Object.entries(
       data.connectedPollbooks
     )) {

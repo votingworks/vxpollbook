@@ -201,6 +201,7 @@ export interface DeviceStatuses {
   battery?: BatteryInfo;
   printer: PrinterStatus;
   usbDrive: UsbDriveStatus;
+  isOnline: boolean;
   network: {
     pollbooks: Array<Pick<PollBookService, 'machineId' | 'lastSeen'>>;
   };

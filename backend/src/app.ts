@@ -222,8 +222,8 @@ async function setupMachineNetworking({
         }
       }
       for (const { name, host, port } of services) {
-        if (name === currentNodeServiceName) {
-          // current machine, do not need to connect
+        if (name !== currentNodeServiceName && !workspace.store.isOnline()) {
+          // do not bother trying to ping other nodes if we are not online
           continue;
         }
         const currentPollbookService = previouslyConnected[name];
@@ -234,6 +234,17 @@ async function setupMachineNetworking({
 
         try {
           const machineInformation = await apiClient.getMachineInformation();
+          if (name === currentNodeServiceName) {
+            // current machine, if we got here the network is working
+            if (workspace.store.isOnline() === false) {
+              console.log('Setting online status to true');
+              console.log(name);
+              console.log(host, port);
+              console.log(machineInformation);
+            }
+            workspace.store.setOnlineStatus(true);
+            continue;
+          }
           if (
             !currentElection ||
             currentElection.id !== machineInformation.configuredElectionId
@@ -271,6 +282,13 @@ async function setupMachineNetworking({
             status: PollbookConnectionStatus.Connected,
           });
         } catch (error) {
+          if (name === currentNodeServiceName) {
+            // Could not ping our own machine, mark as offline
+            console.log('Setting online status to false');
+            console.log(name);
+            console.log(host, port);
+            workspace.store.setOnlineStatus(false);
+          }
           debug(`Failed to establish connection from ${name}: ${error}`);
         }
       }
@@ -314,6 +332,7 @@ function buildApi(context: AppContext) {
         usbDrive: usbDriveStatus,
         printer: printerStatus,
         battery: batteryStatus ?? undefined,
+        isOnline: store.isOnline(),
         network: {
           pollbooks: store
             .getAllConnectedPollbookServices()

@@ -221,6 +221,12 @@ async function setupMachineNetworking({
           });
         }
       }
+      if (!services.some((s) => s.name === currentNodeServiceName)) {
+        // If the current machine is no longer published on Avahi, mark as offline
+        console.log('Setting online status to false');
+        workspace.store.setOnlineStatus(false);
+        continue;
+      }
       for (const { name, host, port } of services) {
         if (name !== currentNodeServiceName && !workspace.store.isOnline()) {
           // do not bother trying to ping other nodes if we are not online

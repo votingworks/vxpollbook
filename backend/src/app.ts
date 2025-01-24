@@ -201,7 +201,7 @@ async function setupMachineNetworking({
   process.nextTick(async () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     for await (const _ of setInterval(NETWORK_POLLING_INTERVAL)) {
-      if (!AvahiService.hasOnlineInterface()) {
+      if (!(await AvahiService.hasOnlineInterface())) {
         // There is no network to try to connect over. Bail out.
         workspace.store.setOnlineStatus(false);
         continue;

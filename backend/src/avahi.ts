@@ -109,7 +109,7 @@ export class AvahiService {
   static async hasOnlineInterface(): Promise<boolean> {
     const command = 'ip link show | grep "state UP"';
     try {
-      const { stdout } = await execPromise(command);
+      const { stdout, stderr } = await execPromise(command);
       debug(`ip link show stdout: ${stdout}`);
       return stdout.length > 0;
     } catch (error) {

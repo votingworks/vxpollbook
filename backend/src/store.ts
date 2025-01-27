@@ -339,6 +339,21 @@ export class Store {
     );
   }
 
+  getAllVoters(): Array<{
+    voterId: string;
+    firstName: string;
+    lastName: string;
+  }> {
+    const voters = this.getVoters();
+    return (
+      voters?.map((v) => ({
+        firstName: v.firstName,
+        lastName: v.lastName,
+        voterId: v.voterId,
+      })) ?? []
+    );
+  }
+
   searchVoters(searchParams: VoterSearchParams): Voter[] | number {
     const voters = this.getVoters();
     assert(voters);

@@ -445,6 +445,14 @@ function buildApi(context: AppContext) {
     getEvents(input: { currentClock: VectorClock }): PollbookEvent[] {
       return store.getNewEvents(input.currentClock);
     },
+
+    getAllVoters(): Array<{
+      voterId: string;
+      firstName: string;
+      lastName: string;
+    }> {
+      return store.getAllVoters();
+    },
   });
 }
 

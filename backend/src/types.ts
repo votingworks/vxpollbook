@@ -195,14 +195,15 @@ export interface ConnectedPollbookService extends PollBookService {
 
 export interface NetworkStatus {
   pollbooks: Array<Pick<PollBookService, 'machineId' | 'lastSeen'>>;
+  isOnline: boolean;
 }
 
 export interface DeviceStatuses {
   battery?: BatteryInfo;
   printer: PrinterStatus;
   usbDrive: UsbDriveStatus;
-  isOnline: boolean;
   network: {
+    isOnline: boolean;
     pollbooks: Array<Pick<PollBookService, 'machineId' | 'lastSeen'>>;
   };
 }

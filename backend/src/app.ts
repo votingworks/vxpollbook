@@ -345,8 +345,8 @@ function buildApi(context: AppContext) {
         usbDrive: usbDriveStatus,
         printer: printerStatus,
         battery: batteryStatus ?? undefined,
-        isOnline: store.isOnline(),
         network: {
+          isOnline: store.isOnline(),
           pollbooks: store
             .getAllConnectedPollbookServices()
             .map((pollbook) => ({

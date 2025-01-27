@@ -42,7 +42,11 @@ function NetworkStatus({ status }: { status: NetworkStatus }) {
   return (
     <Row style={{ gap: '0.25rem', alignItems: 'center' }}>
       <Icons.Antenna color="inverse" />
-      {status.pollbooks.length}
+      {status.isOnline ? (
+        status.pollbooks.length
+      ) : (
+        <Icons.Warning color="inverseWarning" />
+      )}
     </Row>
   );
 }
@@ -85,15 +89,10 @@ function Statuses() {
   if (!getDeviceStatusesQuery.isSuccess) {
     return null;
   }
-  const { network, battery, usbDrive, printer, isOnline } =
-    getDeviceStatusesQuery.data;
+  const { network, battery, usbDrive, printer } = getDeviceStatusesQuery.data;
   return (
     <Row style={{ gap: '1.5rem' }}>
-      {isOnline ? (
-        <NetworkStatus status={network} />
-      ) : (
-        <Icons.Warning color="inverseWarning" />
-      )}
+      <NetworkStatus status={network} />
       <PrinterStatus status={printer} />
       <UsbStatus status={usbDrive} />
       <BatteryStatus status={battery} />

@@ -42,6 +42,7 @@ export function createQueryClient(): QueryClient {
         useErrorBoundary: true,
       },
       mutations: {
+        networkMode: 'always',
         useErrorBoundary: true,
       },
     },

@@ -203,6 +203,9 @@ async function setupMachineNetworking({
     for await (const _ of setInterval(NETWORK_POLLING_INTERVAL)) {
       if (!(await AvahiService.hasOnlineInterface())) {
         // There is no network to try to connect over. Bail out.
+        debug(
+          'No online interface found. Setting online status to false and bailing.'
+        );
         workspace.store.setOnlineStatus(false);
         continue;
       }
@@ -229,7 +232,9 @@ async function setupMachineNetworking({
       }
       if (!services.some((s) => s.name === currentNodeServiceName)) {
         // If the current machine is no longer published on Avahi, mark as offline
-        console.log('Setting online status to false');
+        debug(
+          'Current service no longer found on avahi. Setting online status to false'
+        );
         workspace.store.setOnlineStatus(false);
         continue;
       }
@@ -249,10 +254,7 @@ async function setupMachineNetworking({
           if (name === currentNodeServiceName) {
             // current machine, if we got here the network is working
             if (workspace.store.isOnline() === false) {
-              console.log('Setting online status to true');
-              console.log(name);
-              console.log(host, port);
-              console.log(machineInformation);
+              debug('Setting online status to true');
             }
             workspace.store.setOnlineStatus(true);
             continue;
@@ -296,9 +298,8 @@ async function setupMachineNetworking({
         } catch (error) {
           if (name === currentNodeServiceName) {
             // Could not ping our own machine, mark as offline
-            console.log('Setting online status to false');
-            console.log(name);
-            console.log(host, port);
+            debug('Failed to establish connection to self: %s', error);
+            debug('Setting online status to false');
             workspace.store.setOnlineStatus(false);
           }
           debug(`Failed to establish connection from ${name}: ${error}`);
@@ -390,6 +391,7 @@ function buildApi(context: AppContext) {
       identificationMethod: VoterIdentificationMethod;
     }): Promise<boolean> {
       const { voter, count } = store.recordVoterCheckIn(input);
+      debug('Checked in voter %s', voter.voterId);
 
       const receipt = React.createElement(CheckInReceipt, {
         voter,
@@ -411,6 +413,7 @@ function buildApi(context: AppContext) {
           },
         })
       ).unsafeUnwrap();
+      debug('Printing receipt for voter %s', voter.voterId);
       await printer.print({ data: receiptPdf });
 
       return true; // Successfully checked in and printed receipt

@@ -261,95 +261,91 @@ export class Store {
       switch (pollbookEvent.type) {
         case EventType.VoterCheckIn: {
           const event = pollbookEvent as VoterCheckInEvent;
-          this.client.transaction(() => {
-            // Save the event
-            this.client.run(
-              'INSERT INTO event_log (machine_id, voter_id, event_type, physical_time, logical_counter, event_data) VALUES (?, ?, ?, ?, ?, ?)',
-              event.machineId,
-              event.voterId,
-              event.type,
-              event.timestamp.physical,
-              event.timestamp.logical,
-              JSON.stringify(event.checkInData)
-            );
+          // Save the event
+          this.client.run(
+            'INSERT INTO event_log (machine_id, voter_id, event_type, physical_time, logical_counter, event_data) VALUES (?, ?, ?, ?, ?, ?)',
+            event.machineId,
+            event.voterId,
+            event.type,
+            event.timestamp.physical,
+            event.timestamp.logical,
+            JSON.stringify(event.checkInData)
+          );
 
-            const latestEventForVoter = this.getLatestEventForVoter(
+          const latestEventForVoter = this.getLatestEventForVoter(
+            event.voterId
+          );
+          if (
+            latestEventForVoter &&
+            HybridLogicalClock.compareHlcTimestamps(
+              event.timestamp,
+              latestEventForVoter.timestamp
+            ) < 0
+          ) {
+            debug(
+              'Not updating check-in status for voter %s, not the latest event',
               event.voterId
             );
-            if (
-              latestEventForVoter &&
-              HybridLogicalClock.compareHlcTimestamps(
-                event.timestamp,
-                latestEventForVoter.timestamp
-              ) < 0
-            ) {
-              debug(
-                'Not updating check-in status for voter %s, not the latest event',
-                event.voterId
-              );
-              // This is not the latest event we have for this voter, do not update the check-in status.
-              return true;
-            }
-            // Update check-in status
-            this.client.run(
-              `
+            // This is not the latest event we have for this voter, do not update the check-in status.
+            return true;
+          }
+          // Update check-in status
+          this.client.run(
+            `
               UPDATE voter_check_in_status 
               SET is_checked_in = 1,
                   machine_id = ?,
                   check_in_data = ?
               WHERE voter_id = ?
             `,
-              event.machineId,
-              JSON.stringify(event.checkInData),
-              event.voterId
-            );
-          });
+            event.machineId,
+            JSON.stringify(event.checkInData),
+            event.voterId
+          );
           return true;
         }
         case EventType.UndoVoterCheckIn: {
           const event = pollbookEvent as UndoVoterCheckInEvent;
-          this.client.transaction(() => {
-            // Save the event
-            this.client.run(
-              'INSERT INTO event_log (machine_id, voter_id, event_type, physical_time, logical_counter, event_data) VALUES (?, ?, ?, ?, ?, ?)',
-              event.machineId,
-              event.voterId,
-              event.type,
-              event.timestamp.physical,
-              event.timestamp.logical,
-              '{}'
-            );
+          // Save the event
+          this.client.run(
+            'INSERT INTO event_log (machine_id, voter_id, event_type, physical_time, logical_counter, event_data) VALUES (?, ?, ?, ?, ?, ?)',
+            event.machineId,
+            event.voterId,
+            event.type,
+            event.timestamp.physical,
+            event.timestamp.logical,
+            '{}'
+          );
 
-            const latestEventForVoter = this.getLatestEventForVoter(
+          const latestEventForVoter = this.getLatestEventForVoter(
+            event.voterId
+          );
+          if (
+            latestEventForVoter &&
+            HybridLogicalClock.compareHlcTimestamps(
+              event.timestamp,
+              latestEventForVoter.timestamp
+            ) < 0
+          ) {
+            debug(
+              'Not updating check-in status for voter %s, not the latest event',
               event.voterId
             );
-            if (
-              latestEventForVoter &&
-              HybridLogicalClock.compareHlcTimestamps(
-                event.timestamp,
-                latestEventForVoter.timestamp
-              ) < 0
-            ) {
-              debug(
-                'Not updating check-in status for voter %s, not the latest event',
-                event.voterId
-              );
-              // This is not the latest event we have for this voter, do not update the check-in status.
-              return true;
-            }
+            // This is not the latest event we have for this voter, do not update the check-in status.
+            return true;
+          }
 
-            // Update check-in status
-            this.client.run(
-              `
+          // Update check-in status
+          this.client.run(
+            `
               UPDATE voter_check_in_status 
               SET is_checked_in = 0,
                   machine_id = NULL,
                   check_in_data = NULL
               WHERE voter_id = ?
             `,
-              event.voterId
-            );
-          });
+            event.voterId
+          );
           return true;
         }
         default: {
@@ -532,15 +528,18 @@ export class Store {
       timestamp: timestamp.toISOString(),
     };
     const eventTime = this.incrementClock();
-    this.saveEvent(
-      typedAs<VoterCheckInEvent>({
-        type: EventType.VoterCheckIn,
-        machineId: this.machineId,
-        voterId,
-        timestamp: eventTime,
-        checkInData: voter.checkIn,
-      })
-    );
+    this.client.transaction(() => {
+      assert(voter.checkIn);
+      this.saveEvent(
+        typedAs<VoterCheckInEvent>({
+          type: EventType.VoterCheckIn,
+          machineId: this.machineId,
+          voterId,
+          timestamp: eventTime,
+          checkInData: voter.checkIn,
+        })
+      );
+    });
     return { voter, count: this.getCheckInCount() };
   }
 
@@ -551,14 +550,16 @@ export class Store {
     const voter = find(voters, (v) => v.voterId === voterId);
     voter.checkIn = undefined;
     const eventTime = this.incrementClock();
-    this.saveEvent(
-      typedAs<UndoVoterCheckInEvent>({
-        type: EventType.UndoVoterCheckIn,
-        machineId: this.machineId,
-        voterId,
-        timestamp: eventTime,
-      })
-    );
+    this.client.transaction(() => {
+      this.saveEvent(
+        typedAs<UndoVoterCheckInEvent>({
+          type: EventType.UndoVoterCheckIn,
+          machineId: this.machineId,
+          voterId,
+          timestamp: eventTime,
+        })
+      );
+    });
     return voter;
   }
 

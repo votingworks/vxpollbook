@@ -11,7 +11,6 @@ import {
   typedAs,
 } from '@votingworks/basics';
 import { safeParseJson } from '@votingworks/types';
-import { integer } from '@votingworks/types/src/cdf/cast-vote-records';
 import { rootDebug } from './debug';
 import {
   ConnectedPollbookService,
@@ -51,6 +50,18 @@ const data: {
 
 const SchemaPath = join(__dirname, '../schema.sql');
 
+export function comparePollbookEvents(
+  a: PollbookEvent,
+  b: PollbookEvent
+): number {
+  const clockComparison = compareVectorClocks(a.vectorClock, b.vectorClock);
+  if (clockComparison !== 0) {
+    return clockComparison;
+  }
+  // Tie breaker for concurrent events use system timestamps.
+  return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+}
+
 export class Store {
   private constructor(
     private readonly client: DbClient,
@@ -69,6 +80,61 @@ export class Store {
 
   private updateLocalVectorClock(remoteClock: VectorClock) {
     data.vectorClock = mergeVectorClocks(data.vectorClock, remoteClock);
+  }
+
+  private applyEventsToVoterCheckInTable(): void {
+    this.client.transaction(() => {
+      // Apply all events in order to build initial state
+      const rows = this.client.all(
+        `
+        SELECT * FROM event_log 
+        WHERE event_type IN (?, ?)
+        ORDER BY timestamp
+      `,
+        EventType.VoterCheckIn,
+        EventType.UndoVoterCheckIn
+      ) as EventDbRow[];
+
+      const orderedEvents = this.getOrderedEventsFromDbRows(rows);
+
+      for (const event of orderedEvents) {
+        switch (event.type) {
+          case EventType.VoterCheckIn: {
+            this.client.run(
+              `
+            UPDATE voter_check_in_status 
+            SET is_checked_in = 1,
+                machine_id = ?,
+                check_in_timestamp = ?
+                check_in_data = ?
+            WHERE voter_id = ?
+          `,
+              event.machineId,
+              event.timestamp,
+              JSON.stringify((event as VoterCheckInEvent).checkInData),
+              (event as VoterCheckInEvent).voterId
+            );
+            break;
+          }
+          case EventType.UndoVoterCheckIn: {
+            this.client.run(
+              `
+            UPDATE voter_check_in_status 
+            SET is_checked_in = 0,
+                machine_id = NULL,
+                check_in_timestamp = NULL
+            WHERE voter_id = ?
+          `,
+              (event as UndoVoterCheckInEvent).voterId
+            );
+            break;
+          }
+          default: {
+            throwIllegalValue(event.type);
+          }
+        }
+      }
+    });
   }
 
   setOnlineStatus(isOnline: boolean): void {
@@ -116,98 +182,28 @@ export class Store {
     return new Store(DbClient.memoryClient(SchemaPath), machineId);
   }
 
-  private applyEventsToVoters(voters: Voter[]): Voter[] {
+  private getVoters(): Voter[] | undefined {
+    // Load the voters from the database if they are not in memory.
     const rows = this.client.all(
       `
-      select voter_id, event_type, event_data, machine_id, timestamp, vector_clock
-      from event_log
-      where event_type IN (?, ?)
-      `,
-      EventType.VoterCheckIn,
-      EventType.UndoVoterCheckIn
-    ) as Array<{
-      voter_id: string;
-      event_type: EventType;
-      event_data: string;
-      machine_id: string;
-      timestamp: string;
-      vector_clock: string;
-    }>;
-
+        SELECT v.voter_data, vc.check_in_data
+        FROM voters v
+        LEFT JOIN voter_check_in_status vc ON v.voter_id = vc.voter_id
+      `
+    ) as Array<{ voter_data: string; check_in_data: string | null }>;
     if (!rows) {
-      return voters;
+      return undefined;
     }
-
-    const events = rows.map((row) => ({
-      ...row,
-      timestamp: new Date(row.timestamp),
-      vector_clock: safeParseJson(
-        row.vector_clock,
-        VectorClockSchema
-      ).unsafeUnwrap(),
-    }));
-
-    // Order events by the vector clocks, concurrent events are ordered by machine_id.
-    const orderedEvents = [...events].sort((a, b) => {
-      const clockComparison = compareVectorClocks(
-        a.vector_clock,
-        b.vector_clock
-      );
-      if (clockComparison !== 0) {
-        return clockComparison;
+    return rows.map((row) => {
+      const voter = safeParseJson(row.voter_data, VoterSchema).unsafeUnwrap();
+      if (row.check_in_data) {
+        voter.checkIn = safeParseJson(
+          row.check_in_data,
+          VoterCheckInSchema
+        ).unsafeUnwrap();
       }
-      // Tie breaker for concurrent events use system timestamps.
-      return a.timestamp.getTime() - b.timestamp.getTime();
+      return voter;
     });
-
-    for (const event of orderedEvents) {
-      // Most of the time this should be a no-op, but when a node is first starting up it will catch up the local clock.
-      this.updateLocalVectorClock(event.vector_clock);
-      switch (event.event_type) {
-        case EventType.VoterCheckIn: {
-          const voter = find(voters, (v) => v.voterId === event.voter_id);
-          if (!voter) {
-            continue;
-          }
-          voter.checkIn = safeParseJson(
-            event.event_data,
-            VoterCheckInSchema
-          ).unsafeUnwrap();
-          break;
-        }
-        case EventType.UndoVoterCheckIn: {
-          const voter = find(voters, (v) => v.voterId === event.voter_id);
-          if (!voter) {
-            continue;
-          }
-          voter.checkIn = undefined;
-          break;
-        }
-        default: {
-          throwIllegalValue(event.event_type);
-        }
-      }
-    }
-    return voters;
-  }
-
-  private getVoters(): Voter[] | undefined {
-    if (!data.voters) {
-      // Load the voters from the database if they are not in memory.
-      const rows = this.client.all(
-        `
-          select voter_data
-          from voters
-        `
-      ) as Array<{ voter_data: string }>;
-      if (!rows) {
-        return undefined;
-      }
-      data.voters = rows.map((row) =>
-        safeParseJson(row.voter_data, VoterSchema).unsafeUnwrap()
-      );
-    }
-    return this.applyEventsToVoters(data.voters);
   }
 
   saveEvents(pollbookEvents: PollbookEvent[]): boolean {
@@ -220,38 +216,159 @@ export class Store {
     return isSuccess;
   }
 
+  private getOrderedEventsFromDbRows(rows: EventDbRow[]): PollbookEvent[] {
+    const pollbookEvents: PollbookEvent[] = rows
+      .map((event) => {
+        switch (event.event_type) {
+          case EventType.VoterCheckIn: {
+            return typedAs<VoterCheckInEvent>({
+              type: EventType.VoterCheckIn,
+              eventId: event.event_id,
+              machineId: event.machine_id,
+              voterId: event.voter_id,
+              timestamp: event.timestamp,
+              checkInData: safeParseJson(
+                event.event_data,
+                VoterCheckInSchema
+              ).unsafeUnwrap(),
+              vectorClock: safeParseJson(
+                event.vector_clock,
+                VectorClockSchema
+              ).unsafeUnwrap(),
+            });
+          }
+          case EventType.UndoVoterCheckIn: {
+            return typedAs<UndoVoterCheckInEvent>({
+              type: EventType.UndoVoterCheckIn,
+              eventId: event.event_id,
+              machineId: event.machine_id,
+              voterId: event.voter_id,
+              timestamp: event.timestamp,
+              vectorClock: safeParseJson(
+                event.vector_clock,
+                VectorClockSchema
+              ).unsafeUnwrap(),
+            });
+          }
+          default:
+            throwIllegalValue(event.event_type);
+        }
+        return undefined;
+      })
+      .filter((event) => !!event);
+
+    // Order events by the vector clocks, concurrent events are ordered by machine_id.
+    const orderedEvents = [...pollbookEvents].sort(comparePollbookEvents);
+
+    return orderedEvents;
+  }
+
+  // Gets the latest event for a voter from the event log, as determined by the vector clock.
+  private getLatestEventForVoter(voterId: string): PollbookEvent | undefined {
+    const rows = this.client.all(
+      'SELECT * FROM event_log WHERE voter_id = ? ORDER BY timestamp DESC LIMIT 1',
+      voterId
+    ) as EventDbRow[];
+    const orderedEvents = this.getOrderedEventsFromDbRows(rows);
+    return orderedEvents[0] || undefined;
+  }
+
   saveEvent(pollbookEvent: PollbookEvent): boolean {
     try {
+      debug('Saving event %o', pollbookEvent);
       this.updateLocalVectorClock(pollbookEvent.vectorClock);
 
       switch (pollbookEvent.type) {
         case EventType.VoterCheckIn: {
           const event = pollbookEvent as VoterCheckInEvent;
-          // Fail gracefully if the event was already saved.
-          this.client.run(
-            'INSERT INTO event_log (event_id, machine_id, voter_id, event_type, timestamp, event_data, vector_clock) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            event.eventId,
-            event.machineId,
-            event.voterId,
-            event.type,
-            event.timestamp,
-            JSON.stringify(event.checkInData),
-            JSON.stringify(event.vectorClock)
-          );
+          this.client.transaction(() => {
+            // Save the event
+            this.client.run(
+              'INSERT INTO event_log (event_id, machine_id, voter_id, event_type, timestamp, event_data, vector_clock) VALUES (?, ?, ?, ?, ?, ?, ?)',
+              event.eventId,
+              event.machineId,
+              event.voterId,
+              event.type,
+              event.timestamp,
+              JSON.stringify(event.checkInData),
+              JSON.stringify(event.vectorClock)
+            );
+
+            const latestEventForVoter = this.getLatestEventForVoter(
+              event.voterId
+            );
+            if (
+              latestEventForVoter &&
+              comparePollbookEvents(latestEventForVoter, event) > 0
+            ) {
+              debug(
+                'Not updating check-in status for voter %s, not the latest event',
+                event.voterId
+              );
+              // This is not the latest event we have for this voter, do not update the check-in status.
+              return true;
+            }
+            // Update check-in status
+            this.client.run(
+              `
+              UPDATE voter_check_in_status 
+              SET is_checked_in = 1,
+                  machine_id = ?,
+                  check_in_timestamp = ?,
+                  check_in_data = ?
+              WHERE voter_id = ?
+            `,
+              event.machineId,
+              event.timestamp,
+              JSON.stringify(event.checkInData),
+              event.voterId
+            );
+          });
           return true;
         }
         case EventType.UndoVoterCheckIn: {
           const event = pollbookEvent as UndoVoterCheckInEvent;
-          this.client.run(
-            'INSERT INTO event_log (event_id, machine_id, voter_id, event_type, timestamp, event_data, vector_clock) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            event.eventId,
-            event.machineId,
-            event.voterId,
-            event.type,
-            event.timestamp,
-            '{}', // No event data for this event type.
-            JSON.stringify(event.vectorClock)
-          );
+          this.client.transaction(() => {
+            // Save the event
+            this.client.run(
+              'INSERT INTO event_log (event_id, machine_id, voter_id, event_type, timestamp, event_data, vector_clock) VALUES (?, ?, ?, ?, ?, ?, ?)',
+              event.eventId,
+              event.machineId,
+              event.voterId,
+              event.type,
+              event.timestamp,
+              '{}',
+              JSON.stringify(event.vectorClock)
+            );
+
+            const latestEventForVoter = this.getLatestEventForVoter(
+              event.voterId
+            );
+            if (
+              latestEventForVoter &&
+              comparePollbookEvents(latestEventForVoter, event) > 0
+            ) {
+              debug(
+                'Not updating check-in status for voter %s, not the latest event',
+                event.voterId
+              );
+              // This is not the latest event we have for this voter, do not update the check-in status.
+              return true;
+            }
+
+            // Update check-in status
+            this.client.run(
+              `
+              UPDATE voter_check_in_status 
+              SET is_checked_in = 0,
+                  machine_id = NULL,
+                  check_in_data = NULL,
+                  check_in_timestamp = NULL
+              WHERE voter_id = ?
+            `,
+              event.voterId
+            );
+          });
           return true;
         }
         default: {
@@ -291,6 +408,7 @@ export class Store {
     data.election = election;
     data.voters = voters;
     this.client.transaction(() => {
+      this.client.run('DELETE FROM voter_check_in_status');
       this.client.run(
         `
           insert into elections (
@@ -316,8 +434,27 @@ export class Store {
           voter.voterId,
           JSON.stringify(voter)
         );
+        this.client.run(
+          `
+            insert into voter_check_in_status (
+              voter_id,
+              voter_first_name,
+              voter_middle_name,
+              voter_last_name,
+              is_checked_in
+            ) values (
+              ?, ?, ?, ?, ?
+            )
+          `,
+          voter.voterId,
+          voter.firstName,
+          voter.middleName,
+          voter.lastName,
+          0
+        );
       }
     });
+    this.applyEventsToVoterCheckInTable();
   }
 
   deleteElectionAndVoters(): void {
@@ -355,30 +492,37 @@ export class Store {
   }
 
   searchVoters(searchParams: VoterSearchParams): Voter[] | number {
-    const voters = this.getVoters();
-    assert(voters);
     const MAX_VOTER_SEARCH_RESULTS = 20;
-    const matchingVoters = voters.filter(
-      (voter) =>
-        voter.lastName
-          .toUpperCase()
-          .startsWith(searchParams.lastName.toUpperCase()) &&
-        voter.firstName
-          .toUpperCase()
-          .startsWith(searchParams.firstName.toUpperCase())
-    );
+    const rows = this.client.all(
+      `
+      SELECT v.voter_data, vc.check_in_data
+      FROM voters v
+      LEFT JOIN voter_check_in_status vc ON v.voter_id = vc.voter_id
+      WHERE vc.voter_last_name LIKE ? AND vc.voter_first_name LIKE ?
+      `,
+      `${searchParams.lastName.toUpperCase()}%`,
+      `${searchParams.firstName.toUpperCase()}%`
+    ) as Array<{ voter_data: string; check_in_data: string | null }>;
+
+    if (!rows) {
+      return 0;
+    }
+
+    const matchingVoters = rows.map((row) => {
+      const voter = safeParseJson(row.voter_data, VoterSchema).unsafeUnwrap();
+      if (row.check_in_data) {
+        voter.checkIn = safeParseJson(
+          row.check_in_data,
+          VoterCheckInSchema
+        ).unsafeUnwrap();
+      }
+      return voter;
+    });
+
     if (matchingVoters.length > MAX_VOTER_SEARCH_RESULTS) {
       return matchingVoters.length;
     }
     return matchingVoters;
-  }
-
-  getLastSeenEventIdForMachine(machineId: string): integer {
-    const row = this.client.one(
-      'SELECT max(event_id) as last_event_id FROM event_log WHERE machine_id = ?',
-      machineId
-    ) as { last_event_id: integer };
-    return row.last_event_id;
   }
 
   getCurrentClock(): VectorClock {
@@ -392,6 +536,7 @@ export class Store {
     voterId: string;
     identificationMethod: VoterIdentificationMethod;
   }): { voter: Voter; count: number } {
+    debug('Recording check-in for voter %s', voterId);
     const voters = this.getVoters();
     assert(voters);
     const voter = find(voters, (v) => v.voterId === voterId);
@@ -437,12 +582,15 @@ export class Store {
   }
 
   getCheckInCount(machineId?: string): number {
-    const voters = this.getVoters();
-    assert(voters);
-    return voters.filter(
-      (voter) =>
-        voter.checkIn && (!machineId || voter.checkIn.machineId === machineId)
-    ).length;
+    const query = machineId
+      ? `SELECT COUNT(*) as count FROM voter_check_in_status WHERE is_checked_in = 1 AND machine_id = ?`
+      : `SELECT COUNT(*) as count FROM voter_check_in_status WHERE is_checked_in = 1`;
+
+    const result = this.client.one(
+      query,
+      ...(machineId ? [machineId] : [])
+    ) as { count: number };
+    return result.count;
   }
 
   // Returns the events that the fromClock does not know about.

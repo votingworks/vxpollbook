@@ -18,3 +18,15 @@ CREATE TABLE event_log (
     event_data TEXT not null, -- JSON data for additional details associated with the event (id type used for check in, etc.)
     PRIMARY KEY (event_id, machine_id)
 );
+
+CREATE TABLE voter_check_in_status (
+    voter_id TEXT PRIMARY KEY,
+    voter_first_name TEXT NOT NULL,
+    voter_middle_name TEXT,
+    voter_last_name TEXT NOT NULL,
+    is_checked_in INTEGER NOT NULL DEFAULT 0,
+    machine_id TEXT,
+    check_in_timestamp TIMESTAMP,
+    check_in_data TEXT,
+    FOREIGN KEY (voter_id) REFERENCES voters(voter_id)
+);

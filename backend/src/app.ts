@@ -34,7 +34,6 @@ import {
   PollbookConnectionStatus,
   PollbookEvent,
   PollbookPackage,
-  VectorClock,
   Voter,
   VoterIdentificationMethod,
   VoterSearchParams,
@@ -47,6 +46,7 @@ import {
   PORT,
 } from './globals';
 import { CheckInReceipt } from './check_in_receipt';
+import { HlcTimestamp } from './hybrid_logical_clock';
 
 const debug = rootDebug;
 const usbDebug = debug.extend('usb');
@@ -268,6 +268,11 @@ async function setupMachineNetworking({
               machineId: machineInformation.machineId,
               apiClient,
               lastSeen: new Date(),
+              lastSyncedHlc: {
+                physical: 0,
+                logical: 0,
+                machineId: machineInformation.machineId,
+              },
               status: PollbookConnectionStatus.WrongElection,
             });
             continue;
@@ -282,17 +287,23 @@ async function setupMachineNetworking({
             );
           }
           // Sync events from this pollbook service.
-          const currentClock = workspace.store.getCurrentClock();
-          const events = await apiClient.getEvents({
-            currentClock,
-          });
-          workspace.store.saveEvents(events);
+          let syncMoreEvents = true;
+          let { lastSyncedHlc } = currentPollbookService;
+          while (syncMoreEvents) {
+            const { events, hasMore } = await apiClient.getEvents({
+              since: lastSyncedHlc,
+            });
+            workspace.store.saveEvents(events);
+            syncMoreEvents = hasMore;
+            lastSyncedHlc = events[events.length - 1].timestamp;
+          }
 
           // Mark as connected so future events automatically sync.
           workspace.store.setPollbookServiceForName(name, {
             machineId: machineInformation.machineId,
             apiClient,
             lastSeen: new Date(),
+            lastSyncedHlc,
             status: PollbookConnectionStatus.Connected,
           });
         } catch (error) {
@@ -442,8 +453,11 @@ function buildApi(context: AppContext) {
       return store.saveEvent(input.pollbookEvent);
     },
 
-    getEvents(input: { currentClock: VectorClock }): PollbookEvent[] {
-      return store.getNewEvents(input.currentClock);
+    getEvents(input: { since: HlcTimestamp }): {
+      events: PollbookEvent[];
+      hasMore: boolean;
+    } {
+      return store.getNewEvents(input.since);
     },
 
     getAllVoters(): Array<{

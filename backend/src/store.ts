@@ -107,7 +107,7 @@ export class Store {
               `
             UPDATE voter_check_in_status 
             SET is_checked_in = 0,
-                machine_id = NULL,
+                machine_id = NULL
             WHERE voter_id = ?
           `,
               (event as UndoVoterCheckInEvent).voterId

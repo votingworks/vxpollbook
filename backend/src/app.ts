@@ -46,7 +46,7 @@ import {
   PORT,
 } from './globals';
 import { CheckInReceipt } from './check_in_receipt';
-import { HlcTimestamp } from './hybrid_logical_clock';
+import { HlcTimestamp, HybridLogicalClock } from './hybrid_logical_clock';
 
 const debug = rootDebug;
 const usbDebug = debug.extend('usb');
@@ -288,7 +288,13 @@ async function setupMachineNetworking({
           }
           // Sync events from this pollbook service.
           let syncMoreEvents = true;
-          let { lastSyncedHlc } = currentPollbookService;
+          let lastSyncedHlc = currentPollbookService
+            ? currentPollbookService.lastSyncedHlc
+            : {
+                physical: 0,
+                logical: 0,
+                machineId: machineInformation.machineId,
+              };
           while (syncMoreEvents) {
             const { events, hasMore } = await apiClient.getEvents({
               since: lastSyncedHlc,

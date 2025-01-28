@@ -1,4 +1,5 @@
 import * as grout from '@votingworks/grout';
+import { safeParseInt } from '@votingworks/types';
 import type { Api } from '../src/app';
 
 const api = grout.createClient<Api>({
@@ -24,15 +25,23 @@ async function checkInVoter(voterId: string) {
   }
 }
 
-async function checkInAllVotersOnCurrentMachine() {
+async function checkInAllVotersOnCurrentMachine(limit?: number) {
   try {
     console.log('Starting check-in simulation...');
     const voters = await getAllVoters();
-    console.log(`Found ${voters.length} voters`);
+    const votersToProcess = limit ? voters.slice(0, limit) : voters;
+    console.log(
+      `Found ${voters.length} voters, will process ${votersToProcess.length}`
+    );
 
-    for (const voter of voters) {
+    let processed = 0;
+    for (const voter of votersToProcess) {
       await checkInVoter(voter.voterId);
-      // Add a small delay between check-ins to make it more realistic
+      processed += 1;
+
+      if (processed % 100 === 0) {
+        console.log(`Processed ${processed} voters`);
+      }
     }
 
     console.log('Simulation completed!');
@@ -41,4 +50,8 @@ async function checkInAllVotersOnCurrentMachine() {
   }
 }
 
-void checkInAllVotersOnCurrentMachine();
+// Parse command line argument
+const voterLimit = process.argv[2]
+  ? safeParseInt(process.argv[2]).unsafeUnwrap()
+  : undefined;
+void checkInAllVotersOnCurrentMachine(voterLimit);

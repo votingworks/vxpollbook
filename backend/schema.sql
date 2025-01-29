@@ -20,14 +20,3 @@ CREATE TABLE event_log (
 
 -- Index for sorting events by hybrid logical clock physical time then logical counter - machine id is included in the rare event of tie
 CREATE INDEX idx_hlc ON event_log (physical_time, logical_counter, machine_id); 
-
-CREATE TABLE voter_check_in_status (
-    voter_id TEXT PRIMARY KEY,
-    voter_first_name TEXT NOT NULL,
-    voter_middle_name TEXT,
-    voter_last_name TEXT NOT NULL,
-    is_checked_in INTEGER NOT NULL DEFAULT 0,
-    machine_id TEXT,
-    check_in_data TEXT,
-    FOREIGN KEY (voter_id) REFERENCES voters(voter_id)
-);

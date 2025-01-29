@@ -299,9 +299,11 @@ async function setupMachineNetworking({
             const { events, hasMore } = await apiClient.getEvents({
               since: lastSyncedHlc,
             });
-            workspace.store.saveEvents(events);
+            lastSyncedHlc = workspace.store.saveRemoteEvents(
+              events,
+              lastSyncedHlc
+            );
             syncMoreEvents = hasMore;
-            lastSyncedHlc = events[events.length - 1].timestamp;
           }
 
           // Mark as connected so future events automatically sync.

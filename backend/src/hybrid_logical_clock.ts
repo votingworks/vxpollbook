@@ -8,8 +8,11 @@ export class HybridLogicalClock {
   private lastPhysicalTime: number;
   private lastLogical: number;
 
-  constructor(private readonly machineId: string) {
-    this.lastPhysicalTime = 0;
+  constructor(
+    private readonly machineId: string,
+    initialTime?: number
+  ) {
+    this.lastPhysicalTime = initialTime || 0;
     this.lastLogical = 0;
   }
 
@@ -82,7 +85,7 @@ export class HybridLogicalClock {
   }
 
   /**
-   * Returns true if this HLC is causally before the other HLC.
+   * Returns 1 if a > b, -1 if a < b, 0 if a == b.
    */
   static compareHlcTimestamps(a: HlcTimestamp, b: HlcTimestamp): number {
     if (a.physical < b.physical) {

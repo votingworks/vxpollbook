@@ -78,9 +78,7 @@ export class Store {
         `
         SELECT * FROM event_log 
         ORDER BY physical_time, logical_counter, machine_id
-      `,
-        EventType.VoterCheckIn,
-        EventType.UndoVoterCheckIn
+      `
       ) as EventDbRow[];
 
       const orderedEvents = this.convertRowsToPollbookEvents(rows);
@@ -120,6 +118,10 @@ export class Store {
         }
       }
     });
+  }
+
+  getMachineId(): string {
+    return this.machineId;
   }
 
   setOnlineStatus(isOnline: boolean): void {
@@ -191,14 +193,30 @@ export class Store {
     });
   }
 
-  saveEvents(pollbookEvents: PollbookEvent[]): boolean {
+  // Saves all events received from a remote machine. Returning the last event's timestamp.
+  saveRemoteEvents(
+    pollbookEvents: PollbookEvent[],
+    lastSyncTime: HlcTimestamp
+  ): HlcTimestamp {
     let isSuccess = true;
+    let lastSyncedTimestamp = lastSyncTime;
     this.client.transaction(() => {
       for (const pollbookEvent of pollbookEvents) {
         isSuccess = isSuccess && this.saveEvent(pollbookEvent);
+        if (!lastSyncedTimestamp) {
+          lastSyncedTimestamp = pollbookEvent.timestamp;
+        }
+        if (
+          HybridLogicalClock.compareHlcTimestamps(
+            lastSyncedTimestamp,
+            pollbookEvent.timestamp
+          ) < 0
+        ) {
+          lastSyncedTimestamp = pollbookEvent.timestamp;
+        }
       }
     });
-    return isSuccess;
+    return lastSyncedTimestamp;
   }
 
   private convertRowsToPollbookEvents(rows: EventDbRow[]): PollbookEvent[] {
@@ -244,7 +262,7 @@ export class Store {
   // Gets the latest event for a voter from the event log, as determined by the vector clock.
   private getLatestEventForVoter(voterId: string): PollbookEvent | undefined {
     const mostRecentEvent = this.client.one(
-      'SELECT * FROM event_log WHERE voter_id = ? ORDER BY physical_time, logical_counter, machine_id LIMIT 1',
+      'SELECT * FROM event_log WHERE voter_id = ? ORDER BY physical_time DESC, logical_counter DESC, machine_id DESC LIMIT 1',
       voterId
     ) as EventDbRow | undefined;
     if (!mostRecentEvent) {
@@ -257,11 +275,26 @@ export class Store {
     try {
       debug('Saving event %o', pollbookEvent);
       this.updateLocalVectorClock(pollbookEvent.timestamp);
+      // Check if the event is already saved. If so, do not save it again.
+      // All events have a unique (physical_time, logical_counter, machine_id) tuple.
+      const existingEvent = this.client.one(
+        'SELECT * FROM event_log WHERE physical_time = ? AND logical_counter = ? AND machine_id = ?',
+        pollbookEvent.timestamp.physical,
+        pollbookEvent.timestamp.logical,
+        pollbookEvent.timestamp.machineId
+      );
+      if (existingEvent) {
+        debug('Event already saved, skipping');
+        return true;
+      }
 
       switch (pollbookEvent.type) {
         case EventType.VoterCheckIn: {
           const event = pollbookEvent as VoterCheckInEvent;
           // Save the event
+          const latestEventForVoter = this.getLatestEventForVoter(
+            event.voterId
+          );
           this.client.run(
             'INSERT INTO event_log (machine_id, voter_id, event_type, physical_time, logical_counter, event_data) VALUES (?, ?, ?, ?, ?, ?)',
             event.machineId,
@@ -272,9 +305,6 @@ export class Store {
             JSON.stringify(event.checkInData)
           );
 
-          const latestEventForVoter = this.getLatestEventForVoter(
-            event.voterId
-          );
           if (
             latestEventForVoter &&
             HybridLogicalClock.compareHlcTimestamps(
@@ -307,6 +337,9 @@ export class Store {
         case EventType.UndoVoterCheckIn: {
           const event = pollbookEvent as UndoVoterCheckInEvent;
           // Save the event
+          const latestEventForVoter = this.getLatestEventForVoter(
+            event.voterId
+          );
           this.client.run(
             'INSERT INTO event_log (machine_id, voter_id, event_type, physical_time, logical_counter, event_data) VALUES (?, ?, ?, ?, ?, ?)',
             event.machineId,
@@ -317,9 +350,6 @@ export class Store {
             '{}'
           );
 
-          const latestEventForVoter = this.getLatestEventForVoter(
-            event.voterId
-          );
           if (
             latestEventForVoter &&
             HybridLogicalClock.compareHlcTimestamps(

@@ -239,7 +239,7 @@ async function setupMachineNetworking({
         continue;
       }
       for (const { name, host, port } of services) {
-        if (name !== currentNodeServiceName && !workspace.store.isOnline()) {
+        if (name !== currentNodeServiceName && !workspace.store.getIsOnline()) {
           // do not bother trying to ping other nodes if we are not online
           continue;
         }
@@ -253,7 +253,7 @@ async function setupMachineNetworking({
           const machineInformation = await apiClient.getMachineInformation();
           if (name === currentNodeServiceName) {
             // current machine, if we got here the network is working
-            if (workspace.store.isOnline() === false) {
+            if (workspace.store.getIsOnline() === false) {
               debug('Setting online status to true');
             }
             workspace.store.setOnlineStatus(true);
@@ -268,11 +268,6 @@ async function setupMachineNetworking({
               machineId: machineInformation.machineId,
               apiClient,
               lastSeen: new Date(),
-              lastSyncedHlc: {
-                physical: 0,
-                logical: 0,
-                machineId: machineInformation.machineId,
-              },
               status: PollbookConnectionStatus.WrongElection,
             });
             continue;
@@ -288,21 +283,13 @@ async function setupMachineNetworking({
           }
           // Sync events from this pollbook service.
           let syncMoreEvents = true;
-          let lastSyncedHlc = currentPollbookService
-            ? currentPollbookService.lastSyncedHlc
-            : {
-                physical: 0,
-                logical: 0,
-                machineId: machineInformation.machineId,
-              };
           while (syncMoreEvents) {
+            const lastEventSyncedPerNode =
+              workspace.store.getLastEventSyncedPerNode();
             const { events, hasMore } = await apiClient.getEvents({
-              since: lastSyncedHlc,
+              lastEventSyncedPerNode,
             });
-            lastSyncedHlc = workspace.store.saveRemoteEvents(
-              events,
-              lastSyncedHlc
-            );
+            workspace.store.saveRemoteEvents(events);
             syncMoreEvents = hasMore;
           }
 
@@ -311,7 +298,6 @@ async function setupMachineNetworking({
             machineId: machineInformation.machineId,
             apiClient,
             lastSeen: new Date(),
-            lastSyncedHlc,
             status: PollbookConnectionStatus.Connected,
           });
         } catch (error) {
@@ -365,7 +351,7 @@ function buildApi(context: AppContext) {
         printer: printerStatus,
         battery: batteryStatus ?? undefined,
         network: {
-          isOnline: store.isOnline(),
+          isOnline: store.getIsOnline(),
           pollbooks: store
             .getAllConnectedPollbookServices()
             .map((pollbook) => ({
@@ -461,11 +447,11 @@ function buildApi(context: AppContext) {
       return store.saveEvent(input.pollbookEvent);
     },
 
-    getEvents(input: { since: HlcTimestamp }): {
+    getEvents(input: { lastEventSyncedPerNode: Record<string, number> }): {
       events: PollbookEvent[];
       hasMore: boolean;
     } {
-      return store.getNewEvents(input.since);
+      return store.getNewEvents(input.lastEventSyncedPerNode);
     },
 
     getAllVoters(): Array<{

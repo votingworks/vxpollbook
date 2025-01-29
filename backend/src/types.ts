@@ -156,6 +156,7 @@ export const VectorClockSchema: z.ZodSchema<VectorClock> = z.record(z.number());
 export interface PollbookEvent {
   type: EventType;
   machineId: string;
+  localEventId: number;
   timestamp: HlcTimestamp;
 }
 
@@ -180,21 +181,20 @@ export interface PollbookPackage {
   voters: Voter[];
 }
 
-export interface PollBookService {
+export interface PollbookService {
   apiClient?: grout.Client<Api>;
   machineId: string;
   lastSeen: Date;
-  lastSyncedHlc: HlcTimestamp;
   status: PollbookConnectionStatus;
 }
 
-export interface ConnectedPollbookService extends PollBookService {
+export interface ConnectedPollbookService extends PollbookService {
   status: PollbookConnectionStatus.Connected;
   apiClient: grout.Client<Api>;
 }
 
 export interface NetworkStatus {
-  pollbooks: Array<Pick<PollBookService, 'machineId' | 'lastSeen'>>;
+  pollbooks: Array<Pick<PollbookService, 'machineId' | 'lastSeen'>>;
   isOnline: boolean;
 }
 
@@ -204,7 +204,7 @@ export interface DeviceStatuses {
   usbDrive: UsbDriveStatus;
   network: {
     isOnline: boolean;
-    pollbooks: Array<Pick<PollBookService, 'machineId' | 'lastSeen'>>;
+    pollbooks: Array<Pick<PollbookService, 'machineId' | 'lastSeen'>>;
   };
 }
 

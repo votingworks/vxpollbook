@@ -19,7 +19,7 @@ import {
   EventType,
   PollbookConnectionStatus,
   PollbookEvent,
-  PollBookService,
+  PollbookService,
   UndoVoterCheckInEvent,
   Voter,
   VoterCheckInEvent,
@@ -38,9 +38,10 @@ const SchemaPath = join(__dirname, '../schema.sql');
 export class Store {
   private voters?: Record<string, Voter>;
   private election?: Election;
-  private connectedPollbooks: Record<string, PollBookService> = {};
+  private connectedPollbooks: Record<string, PollbookService> = {};
   private currentClock?: HybridLogicalClock;
   private isOnline: boolean = false;
+  private nextEventId: number = 0;
 
   private constructor(
     private readonly client: DbClient,
@@ -68,8 +69,6 @@ export class Store {
     return new Store(DbClient.memoryClient(SchemaPath), machineId);
   }
 
-  // Increments the vector clock for the current machine and returns the new value.
-  // This function MUST be called before saving an event for the current machine.
   private incrementClock(): HlcTimestamp {
     if (!this.currentClock) {
       this.currentClock = new HybridLogicalClock(this.machineId);
@@ -84,25 +83,36 @@ export class Store {
     return this.currentClock.update(remoteClock);
   }
 
-  private initializeVoters(): void {
+  private getNextEventId(): number {
+    const nextId = this.nextEventId;
+    this.nextEventId += 1;
+    return nextId;
+  }
+
+  private getVoters(): Record<string, Voter> | undefined {
     if (!this.voters) {
-      const voterRows = this.client.all(
-        `
+      this.initializeVoters();
+    }
+    return this.voters;
+  }
+
+  private initializeVoters(): void {
+    const voterRows = this.client.all(
+      `
             SELECT v.voter_data
             FROM voters v
           `
-      ) as Array<{ voter_data: string }>;
-      if (!voterRows) {
-        this.voters = undefined;
-        return;
-      }
-      const votersMap: Record<string, Voter> = {};
-      for (const row of voterRows) {
-        const voter = safeParseJson(row.voter_data, VoterSchema).unsafeUnwrap();
-        votersMap[voter.voterId] = voter;
-      }
-      this.voters = votersMap;
+    ) as Array<{ voter_data: string }>;
+    if (!voterRows) {
+      this.voters = undefined;
+      return;
     }
+    const votersMap: Record<string, Voter> = {};
+    for (const row of voterRows) {
+      const voter = safeParseJson(row.voter_data, VoterSchema).unsafeUnwrap();
+      votersMap[voter.voterId] = voter;
+    }
+    this.voters = votersMap;
   }
 
   // Reprocess all events starting from the given HLC timestamp. If no timestamp is given, reprocess all events.
@@ -110,7 +120,9 @@ export class Store {
   // does not need to be cleared when reprocessing.
   private reprocessEventLogFromTimestamp(timestamp?: HlcTimestamp): void {
     // Apply all events in order to build initial state
-    this.initializeVoters();
+    if (!this.voters) {
+      this.initializeVoters();
+    }
     if (!this.voters) {
       return;
     }
@@ -118,9 +130,9 @@ export class Store {
       ? (this.client.all(
           `
         SELECT * FROM event_log 
-        WHERE physical_time > ? OR 
-          (physical_time = ? AND logical_counter > ?) OR 
-          (physical_time = ? AND logical_counter = ? AND machine_id > ?)
+        WHERE physical_time >= ? OR 
+          (physical_time = ? AND logical_counter >= ?) OR 
+          (physical_time = ? AND logical_counter = ? AND machine_id >= ?)
         ORDER BY physical_time, logical_counter, machine_id
         `,
           timestamp.physical,
@@ -160,8 +172,58 @@ export class Store {
     }
   }
 
+  private convertRowsToPollbookEvents(rows: EventDbRow[]): PollbookEvent[] {
+    return rows
+      .map((event) => {
+        switch (event.event_type) {
+          case EventType.VoterCheckIn: {
+            return typedAs<VoterCheckInEvent>({
+              type: EventType.VoterCheckIn,
+              localEventId: event.event_id,
+              machineId: event.machine_id,
+              voterId: event.voter_id,
+              timestamp: {
+                physical: event.physical_time,
+                logical: event.logical_counter,
+                machineId: event.machine_id,
+              },
+              checkInData: safeParseJson(
+                event.event_data,
+                VoterCheckInSchema
+              ).unsafeUnwrap(),
+            });
+          }
+          case EventType.UndoVoterCheckIn: {
+            return typedAs<UndoVoterCheckInEvent>({
+              type: EventType.UndoVoterCheckIn,
+              localEventId: event.event_id,
+              machineId: event.machine_id,
+              voterId: event.voter_id,
+              timestamp: {
+                physical: event.physical_time,
+                logical: event.logical_counter,
+                machineId: event.machine_id,
+              },
+            });
+          }
+          default:
+            throwIllegalValue(event.event_type);
+        }
+        return undefined;
+      })
+      .filter((event) => !!event);
+  }
+
   getMachineId(): string {
     return this.machineId;
+  }
+
+  getIsOnline(): boolean {
+    return this.isOnline;
+  }
+
+  getDbPath(): string {
+    return this.client.getDatabasePath();
   }
 
   setOnlineStatus(isOnline: boolean): void {
@@ -180,111 +242,41 @@ export class Store {
     }
   }
 
-  getIsOnline(): boolean {
-    return this.isOnline;
-  }
-
-  getDbPath(): string {
-    return this.client.getDatabasePath();
-  }
-
-  private getVoters(): Record<string, Voter> | undefined {
-    if (!this.voters) {
-      this.initializeVoters();
-    }
-    return this.voters;
-  }
-
   // Saves all events received from a remote machine. Returning the last event's timestamp.
-  saveRemoteEvents(
-    pollbookEvents: PollbookEvent[],
-    startSyncTime: HlcTimestamp
-  ): HlcTimestamp {
+  saveRemoteEvents(pollbookEvents: PollbookEvent[]): void {
     let isSuccess = true;
-    let lastSyncedTimestamp = startSyncTime;
+    let earliestSyncTime: HlcTimestamp | undefined;
     this.client.transaction(() => {
       for (const pollbookEvent of pollbookEvents) {
         isSuccess = isSuccess && this.saveEvent(pollbookEvent);
-        if (!lastSyncedTimestamp) {
-          lastSyncedTimestamp = pollbookEvent.timestamp;
+        if (!earliestSyncTime) {
+          earliestSyncTime = pollbookEvent.timestamp;
         }
         if (
           HybridLogicalClock.compareHlcTimestamps(
-            lastSyncedTimestamp,
+            earliestSyncTime,
             pollbookEvent.timestamp
-          ) < 0
+          ) > 0
         ) {
-          lastSyncedTimestamp = pollbookEvent.timestamp;
+          earliestSyncTime = pollbookEvent.timestamp;
         }
       }
-      this.reprocessEventLogFromTimestamp(startSyncTime);
+      this.reprocessEventLogFromTimestamp(earliestSyncTime);
     });
-    return lastSyncedTimestamp;
-  }
-
-  private convertRowsToPollbookEvents(rows: EventDbRow[]): PollbookEvent[] {
-    return rows
-      .map((event) => {
-        switch (event.event_type) {
-          case EventType.VoterCheckIn: {
-            return typedAs<VoterCheckInEvent>({
-              type: EventType.VoterCheckIn,
-              machineId: event.machine_id,
-              voterId: event.voter_id,
-              timestamp: {
-                physical: event.physical_time,
-                logical: event.logical_counter,
-                machineId: event.machine_id,
-              },
-              checkInData: safeParseJson(
-                event.event_data,
-                VoterCheckInSchema
-              ).unsafeUnwrap(),
-            });
-          }
-          case EventType.UndoVoterCheckIn: {
-            return typedAs<UndoVoterCheckInEvent>({
-              type: EventType.UndoVoterCheckIn,
-              machineId: event.machine_id,
-              voterId: event.voter_id,
-              timestamp: {
-                physical: event.physical_time,
-                logical: event.logical_counter,
-                machineId: event.machine_id,
-              },
-            });
-          }
-          default:
-            throwIllegalValue(event.event_type);
-        }
-        return undefined;
-      })
-      .filter((event) => !!event);
   }
 
   saveEvent(pollbookEvent: PollbookEvent): boolean {
     try {
       debug('Saving event %o', pollbookEvent);
       this.mergeLocalClockWithRemote(pollbookEvent.timestamp);
-      // Check if the event is already saved. If so, do not save it again.
-      // All events have a unique (physical_time, logical_counter, machine_id) tuple.
-      const existingEvent = this.client.one(
-        'SELECT * FROM event_log WHERE physical_time = ? AND logical_counter = ? AND machine_id = ?',
-        pollbookEvent.timestamp.physical,
-        pollbookEvent.timestamp.logical,
-        pollbookEvent.timestamp.machineId
-      );
-      if (existingEvent) {
-        debug('Event already saved, skipping');
-        return true;
-      }
 
       switch (pollbookEvent.type) {
         case EventType.VoterCheckIn: {
           const event = pollbookEvent as VoterCheckInEvent;
           // Save the event
           this.client.run(
-            'INSERT INTO event_log (machine_id, voter_id, event_type, physical_time, logical_counter, event_data) VALUES (?, ?, ?, ?, ?, ?)',
+            'INSERT INTO event_log (event_id, machine_id, voter_id, event_type, physical_time, logical_counter, event_data) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            event.localEventId,
             event.machineId,
             event.voterId,
             event.type,
@@ -298,7 +290,8 @@ export class Store {
           const event = pollbookEvent as UndoVoterCheckInEvent;
           // Save the event
           this.client.run(
-            'INSERT INTO event_log (machine_id, voter_id, event_type, physical_time, logical_counter, event_data) VALUES (?, ?, ?, ?, ?, ?)',
+            'INSERT INTO event_log (event_id, machine_id, voter_id, event_type, physical_time, logical_counter, event_data) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            event.localEventId,
             event.machineId,
             event.voterId,
             event.type,
@@ -446,21 +439,23 @@ export class Store {
     const voters = this.getVoters();
     assert(voters);
     const voter = voters[voterId];
-    const timestamp = new Date();
+    const isoTimestamp = new Date().toISOString();
     voter.checkIn = {
       identificationMethod,
       machineId: this.machineId,
-      timestamp: timestamp.toISOString(),
+      timestamp: isoTimestamp, // human readable timestamp for paper backup
     };
-    const eventTime = this.incrementClock();
+    const timestamp = this.incrementClock();
+    const localEventId = this.getNextEventId();
     this.client.transaction(() => {
       assert(voter.checkIn);
       this.saveEvent(
         typedAs<VoterCheckInEvent>({
           type: EventType.VoterCheckIn,
           machineId: this.machineId,
+          localEventId,
           voterId,
-          timestamp: eventTime,
+          timestamp,
           checkInData: voter.checkIn,
         })
       );
@@ -474,14 +469,16 @@ export class Store {
     assert(voters);
     const voter = voters[voterId];
     voter.checkIn = undefined;
-    const eventTime = this.incrementClock();
+    const timestamp = this.incrementClock();
+    const localEventId = this.getNextEventId();
     this.client.transaction(() => {
       this.saveEvent(
         typedAs<UndoVoterCheckInEvent>({
           type: EventType.UndoVoterCheckIn,
           machineId: this.machineId,
           voterId,
-          timestamp: eventTime,
+          timestamp,
+          localEventId,
         })
       );
     });
@@ -497,33 +494,65 @@ export class Store {
     ).length;
   }
 
+  getLastEventSyncedPerNode(): Record<string, number> {
+    const rows = this.client.all(
+      `SELECT machine_id, max(event_id) as max_event_id FROM event_log GROUP BY machine_id`
+    ) as Array<{ machine_id: string; max_event_id: number }>;
+    const lastEventSyncedPerNode: Record<string, number> = {};
+    for (const row of rows) {
+      lastEventSyncedPerNode[row.machine_id] = row.max_event_id;
+    }
+    return lastEventSyncedPerNode;
+  }
+
   // Returns the events that the fromClock does not know about.
-  getNewEvents(fromTimestamp: HlcTimestamp): {
+  getNewEvents(lastEventSyncedPerNode: Record<string, number>): {
     events: PollbookEvent[];
     hasMore: boolean;
   } {
     const LIMIT = 500;
+    const machineIds = Object.keys(lastEventSyncedPerNode);
+    const placeholders = machineIds.map(() => '?').join(', ');
+    // Query for all events from unknown machines.
+    const unknownMachineQuery = `
+      SELECT *
+      FROM event_log
+      WHERE machine_id NOT IN (${placeholders})
+      ORDER BY physical_time, logical_counter, machine_id
+      LIMIT ?
+    `;
+    // Query for recent events from known machines
+    const knownMachineQuery = `
+      SELECT *
+      FROM event_log
+      WHERE (${machineIds
+        .map(() => `( machine_id = ? AND event_id > ? )`)
+        .join(' OR ')})
+      ORDER BY physical_time, logical_counter, machine_id
+      LIMIT ?
+    `;
+    const queryParams = [
+      ...machineIds.flatMap((id) => [id, lastEventSyncedPerNode[id]]),
+    ];
 
     return this.client.transaction(() => {
-      const rows = this.client.all(
-        `
-        SELECT * FROM event_log 
-        WHERE physical_time > ? OR 
-          (physical_time = ? AND logical_counter > ?) OR 
-          (physical_time = ? AND logical_counter = ? AND machine_id > ?)
-        ORDER BY physical_time, logical_counter, machine_id
-        LIMIT ?
-        `,
-        fromTimestamp.physical,
-        fromTimestamp.physical,
-        fromTimestamp.logical,
-        fromTimestamp.physical,
-        fromTimestamp.logical,
-        fromTimestamp.machineId,
+      const rowsForUnknownMachines = this.client.all(
+        unknownMachineQuery,
+        ...machineIds,
         LIMIT + 1
       ) as EventDbRow[];
 
+      const rowsForKnownMachines =
+        machineIds.length > 0 && !(rowsForUnknownMachines.length > LIMIT)
+          ? (this.client.all(
+              knownMachineQuery,
+              ...queryParams,
+              LIMIT + 1 - rowsForUnknownMachines.length
+            ) as EventDbRow[])
+          : [];
+      const rows = [...rowsForUnknownMachines, ...rowsForKnownMachines];
       const hasMore = rows.length > LIMIT;
+
       const eventRows = hasMore ? rows.slice(0, LIMIT) : rows;
 
       const events = this.convertRowsToPollbookEvents(eventRows);
@@ -535,13 +564,13 @@ export class Store {
     });
   }
 
-  getPollbookServicesByName(): Record<string, PollBookService> {
+  getPollbookServicesByName(): Record<string, PollbookService> {
     return this.connectedPollbooks;
   }
 
   setPollbookServiceForName(
     avahiServiceName: string,
-    pollbookService: PollBookService
+    pollbookService: PollbookService
   ): void {
     this.connectedPollbooks[avahiServiceName] = pollbookService;
   }

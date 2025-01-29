@@ -28,8 +28,6 @@ import {
   VoterIdentificationMethod,
   VoterSchema,
   VoterSearchParams,
-  VectorClock,
-  VectorClockSchema,
 } from './types';
 import { MACHINE_DISCONNECTED_TIMEOUT } from './globals';
 import { HlcTimestamp, HybridLogicalClock } from './hybrid_logical_clock';

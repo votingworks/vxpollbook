@@ -41,7 +41,7 @@ export class Store {
   private connectedPollbooks: Record<string, PollbookService> = {};
   private currentClock?: HybridLogicalClock;
   private isOnline: boolean = false;
-  private nextEventId: number = 0;
+  private nextEventId?: number;
 
   private constructor(
     private readonly client: DbClient,
@@ -84,6 +84,13 @@ export class Store {
   }
 
   private getNextEventId(): number {
+    if (!this.nextEventId) {
+      const row = this.client.one(
+        'SELECT max(event_id) as max_event_id FROM event_log WHERE machine_id = ?',
+        this.machineId
+      ) as { max_event_id: number };
+      this.nextEventId = row.max_event_id + 1;
+    }
     const nextId = this.nextEventId;
     this.nextEventId += 1;
     return nextId;

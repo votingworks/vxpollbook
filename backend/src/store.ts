@@ -23,13 +23,13 @@ import {
   UndoVoterCheckInEvent,
   Voter,
   VoterCheckInEvent,
-  VoterCheckInSchema,
   VoterIdentificationMethod,
   VoterSchema,
   VoterSearchParams,
 } from './types';
-import { MACHINE_DISCONNECTED_TIMEOUT } from './globals';
+import { MACHINE_DISCONNECTED_TIMEOUT, NETWORK_EVENT_LIMIT } from './globals';
 import { HlcTimestamp, HybridLogicalClock } from './hybrid_logical_clock';
+import { convertDbRowsToPollbookEvents } from './event_helpers';
 
 const debug = rootDebug;
 
@@ -156,7 +156,7 @@ export class Store {
       `
         ) as EventDbRow[]);
 
-    const orderedEvents = this.convertRowsToPollbookEvents(rows);
+    const orderedEvents = convertDbRowsToPollbookEvents(rows);
 
     for (const event of orderedEvents) {
       switch (event.type) {
@@ -177,48 +177,6 @@ export class Store {
         }
       }
     }
-  }
-
-  private convertRowsToPollbookEvents(rows: EventDbRow[]): PollbookEvent[] {
-    return rows
-      .map((event) => {
-        switch (event.event_type) {
-          case EventType.VoterCheckIn: {
-            return typedAs<VoterCheckInEvent>({
-              type: EventType.VoterCheckIn,
-              localEventId: event.event_id,
-              machineId: event.machine_id,
-              voterId: event.voter_id,
-              timestamp: {
-                physical: event.physical_time,
-                logical: event.logical_counter,
-                machineId: event.machine_id,
-              },
-              checkInData: safeParseJson(
-                event.event_data,
-                VoterCheckInSchema
-              ).unsafeUnwrap(),
-            });
-          }
-          case EventType.UndoVoterCheckIn: {
-            return typedAs<UndoVoterCheckInEvent>({
-              type: EventType.UndoVoterCheckIn,
-              localEventId: event.event_id,
-              machineId: event.machine_id,
-              voterId: event.voter_id,
-              timestamp: {
-                physical: event.physical_time,
-                logical: event.logical_counter,
-                machineId: event.machine_id,
-              },
-            });
-          }
-          default:
-            throwIllegalValue(event.event_type);
-        }
-        return undefined;
-      })
-      .filter((event) => !!event);
   }
 
   getMachineId(): string {
@@ -383,6 +341,7 @@ export class Store {
       this.client.run('delete from event_log');
     });
     this.currentClock = new HybridLogicalClock(this.machineId);
+    this.nextEventId = 0;
   }
 
   groupVotersAlphabeticallyByLastName(): Array<Voter[]> {
@@ -393,6 +352,7 @@ export class Store {
     ).map(([, voterGroup]) => voterGroup);
   }
 
+  /* Helper function to get all voters in the database - only used in tests */
   getAllVoters(): Array<{
     voterId: string;
     firstName: string;
@@ -513,11 +473,13 @@ export class Store {
   }
 
   // Returns the events that the fromClock does not know about.
-  getNewEvents(lastEventSyncedPerNode: Record<string, number>): {
+  getNewEvents(
+    lastEventSyncedPerNode: Record<string, number>,
+    limit: number = NETWORK_EVENT_LIMIT
+  ): {
     events: PollbookEvent[];
     hasMore: boolean;
   } {
-    const LIMIT = 500;
     const machineIds = Object.keys(lastEventSyncedPerNode);
     const placeholders = machineIds.map(() => '?').join(', ');
     // Query for all events from unknown machines.
@@ -546,23 +508,23 @@ export class Store {
       const rowsForUnknownMachines = this.client.all(
         unknownMachineQuery,
         ...machineIds,
-        LIMIT + 1
+        limit + 1
       ) as EventDbRow[];
 
       const rowsForKnownMachines =
-        machineIds.length > 0 && !(rowsForUnknownMachines.length > LIMIT)
+        machineIds.length > 0 && !(rowsForUnknownMachines.length > limit)
           ? (this.client.all(
               knownMachineQuery,
               ...queryParams,
-              LIMIT + 1 - rowsForUnknownMachines.length
+              limit + 1 - rowsForUnknownMachines.length
             ) as EventDbRow[])
           : [];
       const rows = [...rowsForUnknownMachines, ...rowsForKnownMachines];
-      const hasMore = rows.length > LIMIT;
+      const hasMore = rows.length > limit;
 
-      const eventRows = hasMore ? rows.slice(0, LIMIT) : rows;
+      const eventRows = hasMore ? rows.slice(0, limit) : rows;
 
-      const events = this.convertRowsToPollbookEvents(eventRows);
+      const events = convertDbRowsToPollbookEvents(eventRows);
 
       return {
         events,

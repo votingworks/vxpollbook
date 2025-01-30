@@ -1,13 +1,12 @@
-import { DateWithoutTime, sleep } from '@votingworks/basics';
-import { ElectionId } from '@votingworks/types';
-import exp from 'constants';
+import { sleep } from '@votingworks/basics';
 import { Store } from './store';
 import {
   createVoter,
+  getTestElection,
   syncEventsForAllPollbooks,
   syncEventsFromTo,
 } from './test_helpers';
-import { Election, Voter } from './types';
+import { Voter } from './types';
 
 // Multi-Node test for the following scenario:
 // - PollbookA comes online
@@ -31,13 +30,7 @@ test('offline undo with later real time check in', async () => {
   const pollbookB = Store.memoryStore('pollbook-b');
 
   // Set up test election and voters
-  const testElection: Election = {
-    id: 'test-election' as ElectionId,
-    title: 'Test Election',
-    date: new DateWithoutTime('2024-01-01'),
-    precincts: [],
-  };
-
+  const testElection = getTestElection();
   const testVoters = [
     createVoter('bob', 'Bob', 'Smith'),
     createVoter('charlie', 'Charlie', 'Brown'),
@@ -138,13 +131,7 @@ test('bad system time nodes should be able to undo', () => {
   const pollbookB = Store.memoryStore('pollbook-b');
 
   // Set up test election and voters
-  const testElection: Election = {
-    id: 'test-election' as ElectionId,
-    title: 'Test Election',
-    date: new DateWithoutTime('2024-01-01'),
-    precincts: [],
-  };
-
+  const testElection = getTestElection();
   const testVoters = [createVoter('bob', 'Bob', 'Smith')];
 
   // Initialize both pollbooks with same election data
@@ -214,13 +201,7 @@ test("getting a offline machines events when I've synced with the online machine
   const pollbookC = Store.memoryStore('pollbook-c');
 
   // Set up test election and voters
-  const testElection: Election = {
-    id: 'test-election' as ElectionId,
-    title: 'Test Election',
-    date: new DateWithoutTime('2024-01-01'),
-    precincts: [],
-  };
-
+  const testElection = getTestElection();
   const testVoters = [
     createVoter('alice', 'Alice', 'Wonderland'),
     createVoter('bob', 'Bob', 'Builder'),
@@ -351,13 +332,7 @@ test('last write wins on double check ins', async () => {
   const pollbookB = Store.memoryStore('pollbook-b');
 
   // Set up test election and voters
-  const testElection: Election = {
-    id: 'test-election' as ElectionId,
-    title: 'Test Election',
-    date: new DateWithoutTime('2024-01-01'),
-    precincts: [],
-  };
-
+  const testElection = getTestElection();
   const testVoters = [
     createVoter('bob', 'Bob', 'Smith'),
     createVoter('charlie', 'Charlie', 'Brown'),
@@ -428,13 +403,7 @@ test('last write wins even when there is bad system time after a sync', () => {
   const pollbookB = Store.memoryStore('pollbook-b');
 
   // Set up test election and voters
-  const testElection: Election = {
-    id: 'test-election' as ElectionId,
-    title: 'Test Election',
-    date: new DateWithoutTime('2024-01-01'),
-    precincts: [],
-  };
-
+  const testElection = getTestElection();
   const testVoters = [createVoter('bob', 'Bob', 'Smith')];
 
   // Initialize both pollbooks with same election data
@@ -529,13 +498,7 @@ test('simultaneous events are handled properly', () => {
   const pollbookC = Store.memoryStore('pollbook-c');
 
   // Set up test election and voters
-  const testElection: Election = {
-    id: 'test-election' as ElectionId,
-    title: 'Test Election',
-    date: new DateWithoutTime('2024-01-01'),
-    precincts: [],
-  };
-
+  const testElection = getTestElection();
   const testVoters = [
     createVoter('bob', 'Bob', 'Smith'),
     createVoter('charlie', 'Charlie', 'Brown'),
@@ -592,13 +555,7 @@ test('late-arriving older event with a more recent undo', () => {
   const pollbookC = Store.memoryStore('pollbook-c');
 
   // Set up test election and voters
-  const testElection: Election = {
-    id: 'test-election' as ElectionId,
-    title: 'Test Election',
-    date: new DateWithoutTime('2024-01-01'),
-    precincts: [],
-  };
-
+  const testElection = getTestElection();
   const testVoters = [
     createVoter('oscar', 'Oscar', 'Wilde'),
     createVoter('penny', 'Penny', 'Lane'),

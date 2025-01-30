@@ -1,6 +1,10 @@
 import { assert, sleep } from '@votingworks/basics';
 import { HybridLogicalClock } from './hybrid_logical_clock';
-import { createVoterCheckInEvent } from './test_helpers';
+import {
+  createVoter,
+  createVoterCheckInEvent,
+  getTestElection,
+} from './test_helpers';
 import { Store } from './store';
 
 export const myMachineId = 'machine-1';
@@ -137,4 +141,145 @@ test('getNewEvents returns no events for known machines and unknown machines', a
   assert(events.length === 4);
   expect(events).toEqual([event6, event7, event4, event5]); // order is not guaranteed to follow HLC
   expect(hasMore).toEqual(false);
+});
+
+test('getNewEvents returns hasMore when there are more events from unknown machines', () => {
+  const store = Store.memoryStore(myMachineId);
+  const store2 = Store.memoryStore('machine-2');
+  const voters = Array.from({ length: 7 }, (_, i) =>
+    createVoter(`voter-${i}`, 'firstname', 'lastname')
+  );
+  store2.setElectionAndVoters(getTestElection(), voters);
+  const theirClock = new HybridLogicalClock(otherMachineId);
+  const events = Array.from({ length: 7 }, (_, i) =>
+    createVoterCheckInEvent(i, otherMachineId, `voter-${i}`, theirClock.tick())
+  );
+
+  for (const event of events) {
+    store.saveEvent(event);
+  }
+
+  const { events: firstBatch, hasMore: firstHasMore } = store.getNewEvents(
+    store2.getLastEventSyncedPerNode(), // empty
+    5
+  );
+  store2.saveRemoteEvents(firstBatch);
+
+  assert(firstBatch.length === 5);
+  expect(firstBatch).toEqual(events.slice(0, 5));
+  expect(firstHasMore).toEqual(true);
+
+  expect(store2.getLastEventSyncedPerNode()).toEqual({
+    [otherMachineId]: 4,
+  });
+
+  const { events: secondBatch, hasMore: secondHasMore } = store.getNewEvents(
+    store2.getLastEventSyncedPerNode(),
+    5
+  );
+
+  assert(secondBatch.length === 2);
+  expect(secondBatch).toEqual(events.slice(5));
+  expect(secondHasMore).toEqual(false);
+});
+
+test('getNewEvents returns hasMore when there are more events from known machines (no unknown machines)', () => {
+  const store = Store.memoryStore(myMachineId);
+  const store2 = Store.memoryStore('machine-2');
+  const voters = Array.from({ length: 7 }, (_, i) =>
+    createVoter(`voter-${i}`, 'firstname', 'lastname')
+  );
+  store2.setElectionAndVoters(getTestElection(), voters);
+  const myClock = new HybridLogicalClock(myMachineId);
+  const events = Array.from({ length: 7 }, (_, i) =>
+    createVoterCheckInEvent(i, myMachineId, `voter-${i + 1}`, myClock.tick())
+  );
+
+  for (const event of events) {
+    store.saveEvent(event);
+  }
+
+  // Set up store2 to have synced the first event only from myMachineId
+  store2.saveRemoteEvents([events[0]]);
+  expect(store2.getLastEventSyncedPerNode()).toEqual({ [myMachineId]: 0 });
+
+  const { events: firstBatch, hasMore: firstHasMore } = store.getNewEvents(
+    store2.getLastEventSyncedPerNode(),
+    5
+  );
+
+  assert(firstBatch.length === 5);
+  expect(firstBatch).toEqual(events.slice(1, 6));
+  expect(firstHasMore).toEqual(true);
+
+  store2.saveRemoteEvents(firstBatch);
+  expect(store2.getLastEventSyncedPerNode()).toEqual({ [myMachineId]: 5 });
+
+  const { events: secondBatch, hasMore: secondHasMore } = store.getNewEvents(
+    store2.getLastEventSyncedPerNode(),
+    5
+  );
+
+  assert(secondBatch.length === 1);
+  expect(secondBatch).toEqual(events.slice(6));
+  expect(secondHasMore).toEqual(false);
+});
+
+test('getNewEvents returns hasMore when there are more events from known machines and unknown machines combined', () => {
+  const store = Store.memoryStore(myMachineId);
+  const store2 = Store.memoryStore('test-machine');
+  const voters = Array.from({ length: 10 }, (_, i) =>
+    createVoter(`voter-${i}`, 'firstname', 'lastname')
+  );
+  store2.setElectionAndVoters(getTestElection(), voters);
+  const myClock = new HybridLogicalClock(myMachineId);
+  const theirClock = new HybridLogicalClock(otherMachineId);
+  const machine1Events = Array.from({ length: 4 }, (_, i) =>
+    createVoterCheckInEvent(i, myMachineId, `voter-${i + 1}`, myClock.tick())
+  );
+  const machine2Events = Array.from({ length: 3 }, (_, i) =>
+    createVoterCheckInEvent(
+      i,
+      otherMachineId,
+      `voter-${i + 5}`,
+      theirClock.tick()
+    )
+  );
+
+  for (const event of machine1Events) {
+    store.saveEvent(event);
+  }
+  for (const event of machine2Events) {
+    store.saveEvent(event);
+  }
+
+  // Set up store2 to have synced the first event only from myMachineId
+  store2.saveRemoteEvents([machine1Events[0]]);
+  expect(store2.getLastEventSyncedPerNode()).toEqual({ [myMachineId]: 0 });
+  const { events: firstBatch, hasMore: firstHasMore } = store.getNewEvents(
+    store2.getLastEventSyncedPerNode(),
+    5
+  );
+
+  assert(firstBatch.length === 5);
+  expect(firstBatch).toEqual([
+    ...machine2Events,
+    ...machine1Events.slice(1, 3),
+  ]);
+  expect(firstHasMore).toEqual(true);
+
+  store2.saveRemoteEvents(firstBatch);
+  expect(store2.getLastEventSyncedPerNode()).toEqual({
+    [myMachineId]: 2,
+    [otherMachineId]: 2,
+  });
+
+  const { events: secondBatch, hasMore: secondHasMore } = store.getNewEvents(
+    store2.getLastEventSyncedPerNode(),
+    5
+  );
+
+  assert(secondBatch.length === 1);
+  expect(secondBatch).toEqual(machine1Events.slice(3));
+  expect(secondHasMore).toEqual(false);
 });

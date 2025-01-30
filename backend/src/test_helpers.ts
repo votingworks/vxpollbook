@@ -1,6 +1,14 @@
+import { DateWithoutTime } from '@votingworks/basics';
+import { ElectionId } from '@votingworks/types';
 import { HlcTimestamp } from './hybrid_logical_clock';
 import { Store } from './store';
-import { Voter, VoterCheckInEvent, EventType, PollbookEvent } from './types';
+import {
+  Voter,
+  VoterCheckInEvent,
+  EventType,
+  PollbookEvent,
+  Election,
+} from './types';
 
 export function createVoter(
   voterId: string,
@@ -83,4 +91,14 @@ export function syncEventsForAllPollbooks(pollbooks: Store[]): void {
       }
     }
   }
+}
+
+export function getTestElection(): Election {
+  const testElection: Election = {
+    id: 'test-election' as ElectionId,
+    title: 'Test Election',
+    date: new DateWithoutTime('2024-01-01'),
+    precincts: [],
+  };
+  return testElection;
 }

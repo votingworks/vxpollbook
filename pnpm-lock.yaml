@@ -162,6 +162,9 @@ importers:
       '@types/uuid':
         specifier: 9.0.5
         version: 9.0.5
+      '@types/yargs':
+        specifier: 17.0.22
+        version: 17.0.22
       esbuild:
         specifier: 0.21.2
         version: 0.21.2
@@ -204,6 +207,9 @@ importers:
       ts-jest:
         specifier: 29.1.1
         version: 29.1.1(@babel/core@7.26.0)(@jest/types@29.6.3)(esbuild@0.21.2)(jest@29.7.0)(typescript@5.6.2)
+      yargs:
+        specifier: 17.7.1
+        version: 17.7.1
 
   frontend:
     dependencies:

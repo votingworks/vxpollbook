@@ -19,6 +19,7 @@ import {
   Election,
   ElectionSchema,
   ValidStreetInfo,
+  StreetSide,
 } from './types';
 import { MAX_POLLBOOK_PACKAGE_SIZE } from './globals';
 import { constructAuthMachineState } from './auth';
@@ -76,7 +77,7 @@ async function readPollbookPackage(
       if (record) {
         record.lowRange = safeParseInt(record.lowRange).unsafeUnwrap();
         record.highRange = safeParseInt(record.highRange).unsafeUnwrap();
-        record.side = record.side.toLowerCase() as 'even' | 'odd';
+        record.side = record.side.toLowerCase() as StreetSide;
       }
       return record;
     },

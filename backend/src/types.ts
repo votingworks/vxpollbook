@@ -192,9 +192,11 @@ export interface VoterSearchParams {
   firstName: string;
 }
 
+export type StreetSide = 'even' | 'odd' | 'all';
+
 export interface ValidStreetInfo {
   streetName: string;
-  side: 'even' | 'odd';
+  side: StreetSide;
   lowRange: number;
   highRange: number;
   postalCity: string;
@@ -215,7 +217,7 @@ export interface ValidStreetInfo {
 export const ValidStreetInfoSchema: z.ZodSchema<ValidStreetInfo[]> = z.array(
   z.object({
     streetName: z.string(),
-    side: z.union([z.literal('even'), z.literal('odd')]),
+    side: z.union([z.literal('even'), z.literal('odd'), z.literal('all')]),
     lowRange: z.number(),
     highRange: z.number(),
     postalCity: z.string(),

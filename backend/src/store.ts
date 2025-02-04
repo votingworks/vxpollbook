@@ -106,7 +106,6 @@ export class Store {
   private getVoters(): Record<string, Voter> | undefined {
     if (!this.voters) {
       this.initializeVoters();
-      this.reprocessEventLogFromTimestamp();
     }
     return this.voters;
   }
@@ -128,6 +127,7 @@ export class Store {
       votersMap[voter.voterId] = voter;
     }
     this.voters = votersMap;
+    this.reprocessEventLogFromTimestamp();
   }
 
   // Reprocess all events starting from the given HLC timestamp. If no timestamp is given, reprocess all events.
@@ -137,9 +137,9 @@ export class Store {
     debug('Reprocessing event log from timestamp %o', timestamp);
     // Apply all events in order to build initial state
     if (!this.voters) {
+      // If we don't have voters, we can't reprocess the event log.
+      // Initializing the voters will trigger a full reprocess.
       this.initializeVoters();
-    }
-    if (!this.voters) {
       return;
     }
     const rows = timestamp
@@ -166,7 +166,6 @@ export class Store {
         ) as EventDbRow[]);
 
     const orderedEvents = convertDbRowsToPollbookEvents(rows);
-    console.log(orderedEvents);
 
     for (const event of orderedEvents) {
       switch (event.type) {
@@ -518,8 +517,9 @@ export class Store {
   private createVoterFromRegistrationData(
     registrationEvent: VoterRegistration
   ): Voter {
+    assert(registrationEvent.voterId !== undefined);
     return {
-      voterId: uuid(),
+      voterId: registrationEvent.voterId,
       firstName: registrationEvent.firstName,
       lastName: registrationEvent.lastName,
       streetNumber: registrationEvent.streetNumber,
@@ -559,6 +559,7 @@ export class Store {
     const registrationEvent: VoterRegistration = {
       ...voterRegistration,
       timestamp: new Date().toISOString(),
+      voterId: uuid(),
     };
     const newVoter = this.createVoterFromRegistrationData(registrationEvent);
     voters[newVoter.voterId] = newVoter;

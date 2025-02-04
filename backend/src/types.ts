@@ -7,9 +7,25 @@ import {
   Election as VxSuiteElection,
 } from '@votingworks/types';
 import { BatteryInfo } from '@votingworks/backend';
-import { UsbDriveStatus } from '@votingworks/usb-drive';
+import { UsbDrive, UsbDriveStatus } from '@votingworks/usb-drive';
+import { DippedSmartCardAuthApi } from '@votingworks/auth';
+import { Printer } from '@votingworks/printing';
 import type { Api } from './app';
 import { HlcTimestamp } from './hybrid_logical_clock';
+import type { Store } from './store';
+
+export interface AppContext {
+  workspace: Workspace;
+  auth: DippedSmartCardAuthApi;
+  usbDrive: UsbDrive;
+  printer: Printer;
+  machineId: string;
+}
+
+export interface Workspace {
+  assetDirectoryPath: string;
+  store: Store;
+}
 
 export type Election = Pick<
   VxSuiteElection,
@@ -234,3 +250,5 @@ export interface EventDbRow {
   physical_time: number;
   logical_counter: number;
 }
+
+export type ConfigurationStatus = 'loading' | 'not-found';

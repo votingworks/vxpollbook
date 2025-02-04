@@ -10,10 +10,9 @@ import {
   typedAs,
 } from '@votingworks/basics';
 import { safeParseJson } from '@votingworks/types';
-import { get } from 'node:http';
 import { rootDebug } from './debug';
 import {
-  ConnectedPollbookService,
+  ConfigurationStatus,
   Election,
   ElectionSchema,
   EventDbRow,
@@ -44,6 +43,7 @@ export class Store {
   private currentClock?: HybridLogicalClock;
   private isOnline: boolean = false;
   private nextEventId?: number;
+  private configurationStatus?: ConfigurationStatus;
 
   private constructor(
     private readonly client: DbClient,
@@ -179,6 +179,14 @@ export class Store {
         }
       }
     }
+  }
+
+  getConfigurationStatus(): ConfigurationStatus | undefined {
+    return this.configurationStatus;
+  }
+
+  setConfigurationStatus(status?: ConfigurationStatus): void {
+    this.configurationStatus = status;
   }
 
   getMachineId(): string {

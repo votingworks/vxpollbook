@@ -81,6 +81,7 @@ export function pollUsbDriveForPollbookPackage({
     for await (const _ of setInterval(100)) {
       const usbDriveStatus = await usbDrive.status();
       if (usbDriveStatus.status !== 'mounted') {
+        workspace.store.setConfigurationStatus(undefined);
         continue;
       }
       usbDebug('Found USB drive mounted at %s', usbDriveStatus.mountPoint);

@@ -18,6 +18,7 @@ import {
   Voter,
   Election,
   ElectionSchema,
+  ValidStreetInfo,
 } from './types';
 import { MAX_POLLBOOK_PACKAGE_SIZE } from './globals';
 import { constructAuthMachineState } from './auth';
@@ -64,7 +65,17 @@ async function readPollbookPackage(
     onRecord: (record) => (record.voterId ? record : null),
   }) as Voter[];
 
-  return ok({ election, voters });
+  const streetsEntry = getFileByName(entries, 'streetNames.csv', zipName);
+  const streetCsvString = await readTextEntry(streetsEntry);
+  const validStreets = parse(streetCsvString, {
+    columns: (header) => header.map(toCamelCase),
+    skipEmptyLines: true,
+    // Filter out metadata row at the end
+    onRecord: (street) => (street.streetName ? street : null),
+  }) as ValidStreetInfo[];
+  console.log(validStreets);
+
+  return ok({ election, voters, validStreets });
 }
 
 export function pollUsbDriveForPollbookPackage({

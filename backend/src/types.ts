@@ -192,9 +192,50 @@ export interface VoterSearchParams {
   firstName: string;
 }
 
+export interface ValidStreetInfo {
+  streetName: string;
+  side: 'even' | 'odd';
+  lowRange: number;
+  highRange: number;
+  postalCity: string;
+  zip5: string;
+  zip4: string;
+  district: string;
+  schoolDist: string;
+  villageDist: string;
+  usCong: string;
+  execCounc: string;
+  stateSen: string;
+  stateRep: string;
+  stateRepFlot: string;
+  countyName: string;
+  countyCommDist: string;
+}
+
+export const ValidStreetInfoSchema: z.ZodSchema<ValidStreetInfo> = z.object({
+  streetName: z.string(),
+  side: z.union([z.literal('even'), z.literal('odd')]),
+  lowRange: z.number(),
+  highRange: z.number(),
+  postalCity: z.string(),
+  zip5: z.string(),
+  zip4: z.string(),
+  district: z.string(),
+  schoolDist: z.string(),
+  villageDist: z.string(),
+  usCong: z.string(),
+  execCounc: z.string(),
+  stateSen: z.string(),
+  stateRep: z.string(),
+  stateRepFlot: z.string(),
+  countyName: z.string(),
+  countyCommDist: z.string(),
+});
+
 export interface PollbookPackage {
   election: Election;
   voters: Voter[];
+  validStreets: ValidStreetInfo[];
 }
 
 export interface PollbookService {

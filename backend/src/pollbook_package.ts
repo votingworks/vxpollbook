@@ -1,6 +1,6 @@
 import { Result, err, ok } from '@votingworks/basics';
 import { readFile, ReadFileError } from '@votingworks/fs';
-import { safeParseJson } from '@votingworks/types';
+import { safeParse, safeParseInt, safeParseJson } from '@votingworks/types';
 import { parse } from 'csv-parse/sync';
 import { setInterval } from 'node:timers/promises';
 import {
@@ -71,9 +71,16 @@ async function readPollbookPackage(
     columns: (header) => header.map(toCamelCase),
     skipEmptyLines: true,
     // Filter out metadata row at the end
-    onRecord: (street) => (street.streetName ? street : null),
+    onRecord: (street) => {
+      const record = street.streetName ? street : null;
+      if (record) {
+        record.lowRange = safeParseInt(record.lowRange).unsafeUnwrap();
+        record.highRange = safeParseInt(record.highRange).unsafeUnwrap();
+        record.side = record.side.toLowerCase() as 'even' | 'odd';
+      }
+      return record;
+    },
   }) as ValidStreetInfo[];
-  console.log(validStreets);
 
   return ok({ election, voters, validStreets });
 }
@@ -127,6 +134,7 @@ export function pollUsbDriveForPollbookPackage({
       const pollbookPackage = pollbookPackageResult.ok();
       workspace.store.setElectionAndVoters(
         pollbookPackage.election,
+        pollbookPackage.validStreets,
         pollbookPackage.voters
       );
       workspace.store.setConfigurationStatus(undefined);

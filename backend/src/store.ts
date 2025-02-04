@@ -1,7 +1,7 @@
 import { Client as DbClient } from '@votingworks/db';
 // import { Iso8601Timestamp } from '@votingworks/types';
 import { join } from 'node:path';
-// import { v4 as uuid } from 'uuid';
+import { v4 as uuid } from 'uuid';
 import { BaseLogger } from '@votingworks/logging';
 import {
   assert,
@@ -27,6 +27,8 @@ import {
   Voter,
   VoterCheckInEvent,
   VoterIdentificationMethod,
+  VoterRegistration,
+  VoterRegistrationEvent,
   VoterSchema,
   VoterSearchParams,
 } from './types';
@@ -34,7 +36,7 @@ import { MACHINE_DISCONNECTED_TIMEOUT, NETWORK_EVENT_LIMIT } from './globals';
 import { HlcTimestamp, HybridLogicalClock } from './hybrid_logical_clock';
 import { convertDbRowsToPollbookEvents } from './event_helpers';
 
-const debug = rootDebug;
+const debug = rootDebug.extend('store');
 
 const SchemaPath = join(__dirname, '../schema.sql');
 
@@ -104,6 +106,7 @@ export class Store {
   private getVoters(): Record<string, Voter> | undefined {
     if (!this.voters) {
       this.initializeVoters();
+      this.reprocessEventLogFromTimestamp();
     }
     return this.voters;
   }
@@ -131,6 +134,7 @@ export class Store {
   // Events are idempotent so this function can be called multiple times without side effects. The in memory voters
   // does not need to be cleared when reprocessing.
   private reprocessEventLogFromTimestamp(timestamp?: HlcTimestamp): void {
+    debug('Reprocessing event log from timestamp %o', timestamp);
     // Apply all events in order to build initial state
     if (!this.voters) {
       this.initializeVoters();
@@ -162,19 +166,38 @@ export class Store {
         ) as EventDbRow[]);
 
     const orderedEvents = convertDbRowsToPollbookEvents(rows);
+    console.log(orderedEvents);
 
     for (const event of orderedEvents) {
       switch (event.type) {
         case EventType.VoterCheckIn: {
           const checkIn = event as VoterCheckInEvent;
           const voter = this.voters[checkIn.voterId];
+          // If we receive an event for a voter that doesn't exist, we should ignore it.
+          // If we get the VoterRegistration event for that voter later, this event will get reprocessed.
+          if (!voter) {
+            debug('Voter %s not found', checkIn.voterId);
+            continue;
+          }
           voter.checkIn = checkIn.checkInData;
           break;
         }
         case EventType.UndoVoterCheckIn: {
           const undo = event as UndoVoterCheckInEvent;
           const voter = this.voters[undo.voterId];
+          if (!voter) {
+            debug('Voter %s not found', undo.voterId);
+            continue;
+          }
           voter.checkIn = undefined;
+          break;
+        }
+        case EventType.VoterRegistration: {
+          const registration = event as VoterRegistrationEvent;
+          const newVoter = this.createVoterFromRegistrationData(
+            registration.registrationData
+          );
+          this.voters[newVoter.voterId] = newVoter;
           break;
         }
         default: {
@@ -276,6 +299,20 @@ export class Store {
             event.timestamp.physical,
             event.timestamp.logical,
             '{}'
+          );
+          return true;
+        }
+        case EventType.VoterRegistration: {
+          const event = pollbookEvent as VoterRegistrationEvent;
+          this.client.run(
+            'INSERT INTO event_log (event_id, machine_id, voter_id, event_type, physical_time, logical_counter, event_data) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            event.localEventId,
+            event.machineId,
+            event.voterId,
+            event.type,
+            event.timestamp.physical,
+            event.timestamp.logical,
+            JSON.stringify(event.registrationData)
           );
           return true;
         }
@@ -476,6 +513,70 @@ export class Store {
       );
     });
     return voter;
+  }
+
+  private createVoterFromRegistrationData(
+    registrationEvent: VoterRegistration
+  ): Voter {
+    return {
+      voterId: uuid(),
+      firstName: registrationEvent.firstName,
+      lastName: registrationEvent.lastName,
+      streetNumber: registrationEvent.streetNumber,
+      streetName: registrationEvent.streetName,
+      postalCityTown: registrationEvent.city,
+      state: registrationEvent.state,
+      postalZip5: registrationEvent.zipCode,
+      party: registrationEvent.party,
+      suffix: registrationEvent.suffix,
+      middleName: registrationEvent.middleName,
+      addressSuffix: registrationEvent.streetSuffix,
+      houseFractionNumber: registrationEvent.houseFractionNumber,
+      apartmentUnitNumber: registrationEvent.apartmentUnitNumber,
+      addressLine2: registrationEvent.addressLine2,
+      addressLine3: registrationEvent.addressLine3,
+      zip4: '',
+      mailingStreetNumber: '',
+      mailingSuffix: '',
+      mailingHouseFractionNumber: '',
+      mailingStreetName: '',
+      mailingApartmentUnitNumber: '',
+      mailingAddressLine2: '',
+      mailingAddressLine3: '',
+      mailingCityTown: '',
+      mailingState: '',
+      mailingZip5: '',
+      mailingZip4: '',
+      district: '',
+      registrationEvent,
+    };
+  }
+
+  registerVoter(voterRegistration: VoterRegistration): Voter {
+    debug('Registering voter %o', voterRegistration);
+    const voters = this.getVoters();
+    assert(voters);
+    const registrationEvent: VoterRegistration = {
+      ...voterRegistration,
+      timestamp: new Date().toISOString(),
+    };
+    const newVoter = this.createVoterFromRegistrationData(registrationEvent);
+    voters[newVoter.voterId] = newVoter;
+    const timestamp = this.incrementClock();
+    const localEventId = this.getNextEventId();
+    this.client.transaction(() => {
+      this.saveEvent(
+        typedAs<VoterRegistrationEvent>({
+          type: EventType.VoterRegistration,
+          machineId: this.machineId,
+          voterId: newVoter.voterId,
+          timestamp,
+          localEventId,
+          registrationData: registrationEvent,
+        })
+      );
+    });
+    return newVoter;
   }
 
   getCheckInCount(machineId?: string): number {

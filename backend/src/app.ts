@@ -19,6 +19,7 @@ import {
   VoterIdentificationMethod,
   VoterSearchParams,
   ConfigurationStatus,
+  VoterRegistration,
 } from './types';
 import { AvahiService } from './avahi';
 import { rootDebug } from './debug';
@@ -291,6 +292,11 @@ function buildApi(context: AppContext) {
 
     undoVoterCheckIn(input: { voterId: string }): void {
       store.recordUndoVoterCheckIn(input.voterId);
+    },
+
+    registerVoter(input: { registrationData: VoterRegistration }): Voter {
+      const voter = store.registerVoter(input.registrationData);
+      return voter;
     },
 
     getCheckInCounts(): { thisMachine: number; allMachines: number } {

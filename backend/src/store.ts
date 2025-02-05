@@ -406,11 +406,16 @@ export class Store {
     this.nextEventId = 0;
   }
 
-  groupVotersAlphabeticallyByLastName(): Array<Voter[]> {
+  groupVotersAlphabeticallyByLastName(
+    includeNewRegistrations: boolean = false
+  ): Array<Voter[]> {
     const voters = this.getVoters();
     assert(voters);
-    return groupBy(Object.values(voters), (v) =>
-      v.lastName[0].toUpperCase()
+    return groupBy(
+      Object.values(voters).filter(
+        (v) => includeNewRegistrations || v.registrationEvent === undefined
+      ),
+      (v) => v.lastName[0].toUpperCase()
     ).map(([, voterGroup]) => voterGroup);
   }
 

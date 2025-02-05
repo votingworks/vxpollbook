@@ -151,6 +151,7 @@ export interface VoterRegistration {
   zipCode: string;
   timestamp?: string;
   voterId?: string;
+  district?: string;
 }
 
 export const VoterRegistrationSchema: z.ZodSchema<VoterRegistration> = z.object(

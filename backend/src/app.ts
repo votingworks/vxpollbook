@@ -296,7 +296,9 @@ function buildApi(context: AppContext) {
       store.recordUndoVoterCheckIn(input.voterId);
     },
 
-    registerVoter(input: { registrationData: VoterRegistration }): Voter {
+    registerVoter(input: {
+      registrationData: VoterRegistration;
+    }): Voter | undefined {
       const voter = store.registerVoter(input.registrationData);
       return voter;
     },

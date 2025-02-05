@@ -9,7 +9,7 @@ import {
   throwIllegalValue,
   typedAs,
 } from '@votingworks/basics';
-import { safeParseJson } from '@votingworks/types';
+import { safeParseInt, safeParseJson } from '@votingworks/types';
 import { rootDebug } from './debug';
 import {
   ConfigurationStatus,
@@ -552,19 +552,66 @@ export class Store {
       mailingState: '',
       mailingZip5: '',
       mailingZip4: '',
-      district: '',
+      district: registrationEvent.district || '',
       registrationEvent,
     };
   }
 
-  registerVoter(voterRegistration: VoterRegistration): Voter {
+  getStreetInfoForVoterRegistration(
+    voterRegistration: VoterRegistration
+  ): ValidStreetInfo | undefined {
+    const validStreetNames = this.getStreetInfo().filter(
+      (info) => info.streetName === voterRegistration.streetName
+    );
+    const voterStreetNumberResult = safeParseInt(
+      voterRegistration.streetNumber
+    );
+    if (!voterStreetNumberResult.isOk()) {
+      return undefined;
+    }
+    const voterStreetNumber = voterStreetNumberResult.ok();
+    for (const streetInfo of validStreetNames) {
+      const step = streetInfo.side === 'all' ? 1 : 2;
+      const validNumbers = new Set<number>();
+      for (let n = streetInfo.lowRange; n <= streetInfo.highRange; n += step) {
+        validNumbers.add(n);
+      }
+      if (validNumbers.has(voterStreetNumber)) {
+        return streetInfo;
+      }
+    }
+    return undefined;
+  }
+
+  isVoterRegistrationValid(voterRegistration: VoterRegistration): boolean {
+    const streetInfo =
+      this.getStreetInfoForVoterRegistration(voterRegistration);
+    return (
+      streetInfo !== undefined &&
+      voterRegistration.firstName.length > 0 &&
+      voterRegistration.lastName.length > 0 &&
+      voterRegistration.streetNumber.length > 0 &&
+      voterRegistration.city.length > 0 &&
+      voterRegistration.zipCode.length === 5
+    );
+  }
+
+  registerVoter(voterRegistration: VoterRegistration): Voter | undefined {
     debug('Registering voter %o', voterRegistration);
     const voters = this.getVoters();
     assert(voters);
+    const isValid = this.isVoterRegistrationValid(voterRegistration);
+    if (!isValid) {
+      return undefined;
+    }
+    const streetInfo =
+      this.getStreetInfoForVoterRegistration(voterRegistration);
+    assert(streetInfo);
     const registrationEvent: VoterRegistration = {
       ...voterRegistration,
       timestamp: new Date().toISOString(),
       voterId: uuid(),
+      district: streetInfo.district,
     };
     const newVoter = this.createVoterFromRegistrationData(registrationEvent);
     voters[newVoter.voterId] = newVoter;

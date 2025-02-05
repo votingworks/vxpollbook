@@ -17,12 +17,13 @@ import { getValidStreetInfo } from './api';
 
 const TextField = styled.input`
   width: 100%;
+  text-transform: uppercase;
 `;
 
 const ExpandableInput = styled(Column)`
   flex: 1;
 `;
-const SmallInput = styled(Column)`
+const StaticInput = styled(Column)`
   flex: 0;
 `;
 const RequiredExpandableInput = styled(ExpandableInput)`
@@ -31,7 +32,7 @@ const RequiredExpandableInput = styled(ExpandableInput)`
     color: red;
   }
 `;
-const RequiredSmallInput = styled(SmallInput)`
+const RequiredStaticInput = styled(StaticInput)`
   & > *:first-child::after {
     content: ' *';
     color: red;
@@ -90,6 +91,7 @@ export function AddVoterScreen({
     const numericPart = voter.streetNumber.replace(/[^0-9]/g, '');
     return safeParseInt(numericPart).ok();
   }, [voter.streetNumber]);
+  console.log(selectedStreetInfoForStreetNames);
 
   const selectedStreetInfoForStreetNameAndNumber = useMemo(
     () =>
@@ -131,10 +133,15 @@ export function AddVoterScreen({
     // For now, just call onSuccess with the voter data
     onSubmit({
       ...voter,
-      city: cityValue,
+      firstName: voter.firstName.toUpperCase(),
+      lastName: voter.lastName.toUpperCase(),
+      middleName: voter.middleName.toUpperCase(),
+      suffix: voter.suffix.toUpperCase(),
+      city: cityValue.toUpperCase(),
       zipCode: zipCodeValue,
       streetNumber: voter.streetNumber.replace(/[^0-9]/g, ''),
-      streetSuffix: voter.streetNumber.replace(/[0-9]/g, ''),
+      streetSuffix: voter.streetNumber.replace(/[0-9]/g, '').toUpperCase(),
+      addressLine2: voter.addressLine2.toUpperCase(),
     });
   }
 
@@ -171,33 +178,17 @@ export function AddVoterScreen({
               }
             />
           </ExpandableInput>
-          <SmallInput>
+          <StaticInput>
             <FieldName>Suffix</FieldName>
             <TextField
               value={voter.suffix}
               style={{ width: '5rem' }}
               onChange={(e) => setVoter({ ...voter, suffix: e.target.value })}
             />
-          </SmallInput>
+          </StaticInput>
         </Row>
         <Row style={{ gap: '1rem', flexGrow: 1 }}>
-          <RequiredExpandableInput>
-            <FieldName>Party Affiliation</FieldName>
-            <SearchSelect
-              id="party"
-              style={{ flex: 1 }}
-              value={voter.party}
-              onChange={(value) => setVoter({ ...voter, party: value || '' })}
-              options={[
-                { value: 'REP', label: 'Republican' },
-                { value: 'DEM', label: 'Democrat' },
-                { value: 'UND', label: 'Undecided' },
-              ]}
-            />
-          </RequiredExpandableInput>
-        </Row>
-        <Row style={{ gap: '1rem', flexGrow: 1 }}>
-          <RequiredSmallInput>
+          <RequiredStaticInput>
             <FieldName>Street #</FieldName>
             <TextField
               id="streetNumber"
@@ -207,7 +198,7 @@ export function AddVoterScreen({
                 setVoter({ ...voter, streetNumber: e.target.value })
               }
             />
-          </RequiredSmallInput>
+          </RequiredStaticInput>
           <RequiredExpandableInput>
             <FieldName>Street Name</FieldName>
             <SearchSelect
@@ -226,7 +217,7 @@ export function AddVoterScreen({
               }))}
             />
           </RequiredExpandableInput>
-          <SmallInput>
+          <StaticInput>
             <FieldName>Apartment/Unit #</FieldName>
             <TextField
               value={voter.apartmentUnitNumber}
@@ -235,9 +226,8 @@ export function AddVoterScreen({
                 setVoter({ ...voter, apartmentUnitNumber: e.target.value })
               }
             />
-          </SmallInput>
+          </StaticInput>
         </Row>
-        {/* Row 4: Address Line 2 + Autocompleted City + Autocompleted Zip */}
         <Row style={{ gap: '1rem', flexGrow: 1 }}>
           <ExpandableInput>
             <FieldName>Address Line 2</FieldName>
@@ -256,6 +246,22 @@ export function AddVoterScreen({
             <FieldName>Zip Code</FieldName>
             <TextField value={zipCodeValue} disabled />
           </RequiredExpandableInput>
+        </Row>
+        <Row style={{ gap: '1rem', flexGrow: 1 }}>
+          <RequiredStaticInput>
+            <FieldName>Party Affiliation</FieldName>
+            <SearchSelect
+              id="party"
+              style={{ width: '20rem' }}
+              value={voter.party}
+              onChange={(value) => setVoter({ ...voter, party: value || '' })}
+              options={[
+                { value: 'REP', label: 'Republican' },
+                { value: 'DEM', label: 'Democrat' },
+                { value: 'UND', label: 'Undecided' },
+              ]}
+            />
+          </RequiredStaticInput>
         </Row>
       </MainContent>
       {voter.streetNumber.trim() !== '' &&
@@ -278,7 +284,7 @@ export function AddVoterScreen({
           style={{ flex: 1 }}
           disabled={isSubmitDisabled}
         >
-          Submit
+          Add Voter
         </Button>
         <Button onPress={onCancel} style={{ flex: 1 }}>
           Cancel

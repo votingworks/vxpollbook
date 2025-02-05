@@ -592,7 +592,9 @@ export class Store {
       voterRegistration.lastName.length > 0 &&
       voterRegistration.streetNumber.length > 0 &&
       voterRegistration.city.length > 0 &&
-      voterRegistration.zipCode.length === 5
+      voterRegistration.zipCode.length === 5 &&
+      voterRegistration.party.length > 0 &&
+      ['DEM', 'REP', 'UND'].includes(voterRegistration.party)
     );
   }
 

@@ -20,6 +20,7 @@ import {
   VoterSearchParams,
   ConfigurationStatus,
   VoterRegistration,
+  ValidStreetInfo,
 } from './types';
 import { AvahiService } from './avahi';
 import { rootDebug } from './debug';
@@ -298,6 +299,10 @@ function buildApi(context: AppContext) {
     registerVoter(input: { registrationData: VoterRegistration }): Voter {
       const voter = store.registerVoter(input.registrationData);
       return voter;
+    },
+
+    getValidStreetInfo(): ValidStreetInfo[] {
+      return store.getStreetInfo();
     },
 
     getCheckInCounts(): { thisMachine: number; allMachines: number } {

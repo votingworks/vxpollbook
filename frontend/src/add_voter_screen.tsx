@@ -1,120 +1,25 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   Button,
   ButtonBar,
-  Callout,
-  Card,
-  Font,
   H1,
-  H2,
-  LabelledText,
   MainContent,
   MainHeader,
   SearchSelect,
-  Select,
 } from '@votingworks/ui';
 import { useState } from 'react';
-import type { VoterRegistration } from '@votingworks/pollbook-backend';
+import type {
+  ValidStreetInfo,
+  VoterRegistration,
+} from '@votingworks/pollbook-backend';
 import styled from 'styled-components';
-import {
-  assert,
-  DateWithoutTime,
-  integers,
-  throwIllegalValue,
-} from '@votingworks/basics';
-import { getDaysInMonth, MONTHS_LONG } from '@votingworks/utils';
-import { safeParseInt, SelectChangeEventFunction } from '@votingworks/types';
+import { safeParseInt } from '@votingworks/types';
 import { Column, Row, InputGroup, FieldName } from './layout';
 import { NoNavScreen } from './nav_screen';
+import { getValidStreetInfo } from './api';
 
 const TextField = styled.input`
   width: 100%;
 `;
-
-const MIN_YEAR = 1900;
-const MAX_YEAR = new Date().getFullYear() - 18;
-type TimePart = 'year' | 'month' | 'day';
-
-export function DatePicker({
-  label,
-  onChange,
-}: {
-  label: string;
-  onChange: (date: string) => void;
-}): JSX.Element {
-  const [year, setYear] = useState<number | undefined>();
-  const [month, setMonth] = useState<number | undefined>();
-  const [day, setDay] = useState<number | undefined>();
-
-  function onUpdateTime(part: TimePart, value?: string): void {
-    const numberValue = safeParseInt(value).ok();
-    switch (part) {
-      case 'year':
-        setYear(numberValue);
-        break;
-      case 'month':
-        setMonth(numberValue);
-        break;
-      case 'day':
-        setDay(numberValue);
-        break;
-      default:
-        throwIllegalValue(part);
-    }
-    onChange(`${year}-${month}-${day}`);
-  }
-
-  return (
-    <InputGroup label="Date of Birth">
-      <Row style={{ gap: '1rem' }}>
-        <Column style={{ flex: 1 }}>
-          <label htmlFor="year">Year</label>
-          <SearchSelect
-            id="year"
-            value={year?.toString()}
-            onChange={(value) => onUpdateTime('year', value)}
-            options={[...integers({ from: MIN_YEAR, through: MAX_YEAR })].map(
-              (yearOpt) => ({
-                value: yearOpt.toString(),
-                label: yearOpt.toString(),
-              })
-            )}
-          />
-        </Column>
-        <Column style={{ flex: 1 }}>
-          <label htmlFor="month">Month</label>
-          <SearchSelect
-            value={month?.toString()}
-            id="month"
-            onChange={(value) => onUpdateTime('month', value)}
-            disabled={!year}
-            options={MONTHS_LONG.map((monthOpt, index) => ({
-              label: monthOpt,
-              value: (index + 1).toString(),
-            }))}
-          />
-        </Column>
-        <Column style={{ flex: 1 }}>
-          <label htmlFor="day">Day</label>
-          <SearchSelect
-            value={day?.toString()}
-            id="day"
-            onChange={(value) => onUpdateTime('day', value)}
-            disabled={!year || !month}
-            options={
-              year && month
-                ? getDaysInMonth(year, month).map(({ day: dayOpt }) => ({
-                    value: dayOpt.toString(),
-                    label: dayOpt.toString(),
-                  }))
-                : []
-            }
-          />
-        </Column>
-      </Row>
-    </InputGroup>
-  );
-}
 
 export function AddVoterScreen({
   onCancel,
@@ -128,7 +33,6 @@ export function AddVoterScreen({
     lastName: '',
     middleName: '',
     suffix: '',
-    dateOfBirth: '',
     party: '',
     streetNumber: '',
     streetName: '',
@@ -139,13 +43,70 @@ export function AddVoterScreen({
     addressLine3: '',
     city: '',
     zipCode: '',
-    state: '',
   });
+
+  const validStreetInfoQuery = getValidStreetInfo.useQuery();
+
+  // Compute deduplicated street names
+  const dedupedStreetNames = validStreetInfoQuery.data
+    ? Array.from(
+        new Set(validStreetInfoQuery.data.map((info) => info.streetName))
+      )
+    : [];
+
+  // Compute valid street info for the selected street name
+  const selectedStreetInfos = validStreetInfoQuery.data
+    ? validStreetInfoQuery.data.filter(
+        (info) => info.streetName === voter.streetName
+      )
+    : [];
+
+  // Generate valid street number options (assumes each row has properties: start and end)
+  const streetNumberOptions = (() => {
+    const numbers = new Set<number>();
+    selectedStreetInfos.forEach((info) => {
+      // For both sides, assume the range step is 2
+      const step = info.side === 'all' ? 1 : 2;
+      for (let n = info.lowRange; n <= info.highRange; n += step) {
+        numbers.add(n);
+      }
+    });
+    return Array.from(numbers)
+      .sort((a, b) => a - b)
+      .map((n) => n.toString());
+  })();
+
+  function isNumberInRange(numString: string, info: ValidStreetInfo) {
+    const num = safeParseInt(numString).ok();
+    if (!num) {
+      return false;
+    }
+    const validNumbers = new Set<number>();
+    const step = info.side === 'all' ? 1 : 2;
+    for (let n = info.lowRange; n <= info.highRange; n += step) {
+      validNumbers.add(n);
+    }
+    return validNumbers.has(num);
+  }
+
+  const selectedStreetInfo = voter.streetNumber
+    ? selectedStreetInfos.filter((info) =>
+        isNumberInRange(voter.streetNumber, info)
+      )[0]
+    : undefined;
+
+  // Populate city and zipCode from the first matching street info
+  const cityValue = selectedStreetInfo?.postalCity || '';
+  const zipCodeValue = selectedStreetInfo?.zip5.padStart(5, '0') || '';
 
   function handleSubmit() {
     // Function to be implemented later to call the correct backend mutation endpoint
     // For now, just call onSuccess with the voter data
-    onSubmit(voter);
+    onSubmit({
+      ...voter,
+      city: cityValue,
+      zipCode: zipCodeValue,
+    });
   }
 
   return (
@@ -160,18 +121,18 @@ export function AddVoterScreen({
         }}
       >
         <Row style={{ gap: '1rem', flexGrow: 1 }}>
+          <InputGroup label="Last Name">
+            <TextField
+              value={voter.lastName}
+              onChange={(e) => setVoter({ ...voter, lastName: e.target.value })}
+            />
+          </InputGroup>
           <InputGroup label="First Name">
             <TextField
               value={voter.firstName}
               onChange={(e) =>
                 setVoter({ ...voter, firstName: e.target.value })
               }
-            />
-          </InputGroup>
-          <InputGroup label="Last Name">
-            <TextField
-              value={voter.lastName}
-              onChange={(e) => setVoter({ ...voter, lastName: e.target.value })}
             />
           </InputGroup>
           <InputGroup label="Middle Name">
@@ -182,23 +143,14 @@ export function AddVoterScreen({
               }
             />
           </InputGroup>
-          <InputGroup label="Suffix">
+          <InputGroup label="Suffix" style={{ flex: 0 }}>
             <TextField
               value={voter.suffix}
+              style={{ width: '5rem' }}
               onChange={(e) => setVoter({ ...voter, suffix: e.target.value })}
             />
           </InputGroup>
-        </Row>
 
-        <Row
-          style={{ gap: '1rem', flexGrow: 1, justifyContent: 'space-between' }}
-        >
-          <Column style={{ flex: 1 }}>
-            <DatePicker
-              label="Date of Birth"
-              onChange={(date) => setVoter({ ...voter, dateOfBirth: date })}
-            />
-          </Column>
           <Column style={{ flex: 1 }}>
             <label htmlFor="party">
               <FieldName>Party Affiliation</FieldName>
@@ -217,32 +169,61 @@ export function AddVoterScreen({
           </Column>
         </Row>
         <Row style={{ gap: '1rem', flexGrow: 1 }}>
-          <InputGroup label="Street Number">
-            <TextField
-              value={voter.streetNumber}
-              onChange={(e) =>
-                setVoter({ ...voter, streetNumber: e.target.value })
-              }
-            />
-          </InputGroup>
-          <InputGroup label="Street Name">
-            <TextField
+          <Column style={{ flex: 1 }}>
+            <label htmlFor="party">
+              <FieldName>Street Name</FieldName>
+            </label>
+            <SearchSelect
+              id="streetName"
               value={voter.streetName}
-              onChange={(e) =>
-                setVoter({ ...voter, streetName: e.target.value })
+              style={{ flex: 1 }}
+              onChange={(value) =>
+                setVoter({
+                  ...voter,
+                  streetName: value || '',
+                  streetNumber: '', // reset street number on change
+                })
               }
+              options={dedupedStreetNames.map((name) => ({
+                value: name,
+                label: name,
+              }))}
             />
+          </Column>
+          <Column style={{ flex: 0 }}>
+            <label htmlFor="party">
+              <FieldName>Street #</FieldName>
+            </label>
+            <SearchSelect
+              id="streetNumber"
+              value={voter.streetNumber}
+              style={{ width: '5rem' }}
+              onChange={(value) =>
+                setVoter({ ...voter, streetNumber: value || '' })
+              }
+              options={streetNumberOptions.map((num) => ({
+                value: num,
+                label: num,
+              }))}
+            />
+          </Column>
+          <InputGroup label="City">
+            <TextField value={cityValue} disabled />
           </InputGroup>
-          <InputGroup label="Street Suffix" style={{ flex: 0 }}>
+          <InputGroup label="Zip Code">
+            <TextField value={zipCodeValue} disabled />
+          </InputGroup>
+        </Row>
+        <Row style={{ gap: '1rem', flexGrow: 1 }}>
+          <InputGroup label="Street Suffix">
             <TextField
               value={voter.streetSuffix}
-              style={{ width: '6rem' }}
               onChange={(e) =>
                 setVoter({ ...voter, streetSuffix: e.target.value })
               }
             />
           </InputGroup>
-          <InputGroup label="House Fraction Number">
+          <InputGroup label="House Fraction #">
             <TextField
               value={voter.houseFractionNumber}
               onChange={(e) =>
@@ -250,7 +231,7 @@ export function AddVoterScreen({
               }
             />
           </InputGroup>
-          <InputGroup label="Apartment/Unit Number">
+          <InputGroup label="Apartment/Unit #">
             <TextField
               value={voter.apartmentUnitNumber}
               onChange={(e) =>
@@ -274,24 +255,6 @@ export function AddVoterScreen({
               onChange={(e) =>
                 setVoter({ ...voter, addressLine3: e.target.value })
               }
-            />
-          </InputGroup>
-          <InputGroup label="City">
-            <TextField
-              value={voter.city}
-              onChange={(e) => setVoter({ ...voter, city: e.target.value })}
-            />
-          </InputGroup>
-          <InputGroup label="State">
-            <TextField
-              value={voter.state}
-              onChange={(e) => setVoter({ ...voter, state: e.target.value })}
-            />
-          </InputGroup>
-          <InputGroup label="Zip Code">
-            <TextField
-              value={voter.zipCode}
-              onChange={(e) => setVoter({ ...voter, zipCode: e.target.value })}
             />
           </InputGroup>
         </Row>

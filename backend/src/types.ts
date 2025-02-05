@@ -139,7 +139,6 @@ export interface VoterRegistration {
   lastName: string;
   middleName: string;
   suffix: string;
-  dateOfBirth: string;
   party: string;
   streetNumber: string;
   streetName: string;
@@ -149,7 +148,6 @@ export interface VoterRegistration {
   addressLine2: string;
   addressLine3: string;
   city: string;
-  state: string;
   zipCode: string;
   timestamp?: string;
   voterId?: string;
@@ -161,7 +159,6 @@ export const VoterRegistrationSchema: z.ZodSchema<VoterRegistration> = z.object(
     lastName: z.string(),
     middleName: z.string(),
     suffix: z.string(),
-    dateOfBirth: z.string(),
     party: z.string(),
     streetNumber: z.string(),
     streetName: z.string(),
@@ -171,7 +168,6 @@ export const VoterRegistrationSchema: z.ZodSchema<VoterRegistration> = z.object(
     addressLine2: z.string(),
     addressLine3: z.string(),
     city: z.string(),
-    state: z.string(),
     zipCode: z.string(),
     timestamp: z.string().optional(),
     voterId: z.string().optional(),

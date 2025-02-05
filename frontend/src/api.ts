@@ -159,6 +159,16 @@ export const getCheckInCounts = {
   },
 } as const;
 
+export const getValidStreetInfo = {
+  queryKey(): QueryKey {
+    return ['getValidStreetInfo'];
+  },
+  useQuery() {
+    const apiClient = useApiClient();
+    return useQuery(this.queryKey(), () => apiClient.getValidStreetInfo());
+  },
+} as const;
+
 export const checkInVoter = {
   useMutation() {
     const apiClient = useApiClient();

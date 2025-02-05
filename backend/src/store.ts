@@ -522,7 +522,6 @@ export class Store {
   private createVoterFromRegistrationData(
     registrationEvent: VoterRegistration
   ): Voter {
-    console.log(registrationEvent);
     assert(registrationEvent.voterId !== undefined);
     return {
       voterId: registrationEvent.voterId,
@@ -531,7 +530,7 @@ export class Store {
       streetNumber: registrationEvent.streetNumber,
       streetName: registrationEvent.streetName,
       postalCityTown: registrationEvent.city,
-      state: registrationEvent.state,
+      state: 'NH', // TODO update to not hard code
       postalZip5: registrationEvent.zipCode,
       party: registrationEvent.party,
       suffix: registrationEvent.suffix,
@@ -584,6 +583,12 @@ export class Store {
       );
     });
     return newVoter;
+  }
+
+  // Returns the valid street info. Used when registering a voter to populate address typeahead options.
+  // TODO the frontend doesn't need to know everything in the ValidStreetInfo object. This could be paired down.
+  getStreetInfo(): ValidStreetInfo[] {
+    return this.validStreetInfo || [];
   }
 
   getCheckInCount(machineId?: string): number {

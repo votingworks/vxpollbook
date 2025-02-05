@@ -517,6 +517,7 @@ export class Store {
   private createVoterFromRegistrationData(
     registrationEvent: VoterRegistration
   ): Voter {
+    console.log(registrationEvent);
     assert(registrationEvent.voterId !== undefined);
     return {
       voterId: registrationEvent.voterId,

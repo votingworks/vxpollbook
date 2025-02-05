@@ -173,7 +173,8 @@ export const VoterRegistrationSchema: z.ZodSchema<VoterRegistration> = z.object(
     city: z.string(),
     state: z.string(),
     zipCode: z.string(),
-    timestamp: z.string(),
+    timestamp: z.string().optional(),
+    voterId: z.string().optional(),
   }
 );
 

@@ -5,14 +5,10 @@
 
 # Check if mesh0 interface already exists
 if iw dev | grep -q "mesh0"; then
-    force=false
-    if [[ " $@ " == *" --force "* ]]; then
-        force=true
-    fi
     mesh_type=$(iw dev mesh0 info 2>/dev/null | grep "type" | awk '{print $2" "$3}')
-    if [ "$force" = true ] || [ "$mesh_type" != "mesh point" ]; then
+    if [ "$mesh_type" != "mesh point" ]; then
         echo "Deleting existing interface mesh0 due to mismatched type or --force flag."
-        sudo ip link delete mesh0
+        sudo iw dev mesh0 del
         sleep 1
     else
         mesh_status=$(ip link show mesh0 | grep -o "state [A-Z]*" | awk '{print $2}')

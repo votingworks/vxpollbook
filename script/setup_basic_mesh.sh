@@ -3,13 +3,30 @@
 # Note this will only work after disabling NetworkManager which conflicts with the setup here. That can be disabled with:
 # sudo systemctl stop NetworkManager
 
-# Check if mesh0 interface already exists, if so reconnect to it instead of creating from scratch.
+# Check if mesh0 interface already exists
 if iw dev | grep -q "mesh0"; then
-    echo "mesh0 interface already exists. Bringing it up and joining pollbook_mesh."
-    sleep 1
-    sudo iw dev mesh0 mesh join pollbook_mesh
-    echo "Successfully joined the network."
-    exit 0
+    force=false
+    if [[ " $@ " == *" --force "* ]]; then
+        force=true
+    fi
+    mesh_type=$(iw dev mesh0 info 2>/dev/null | grep "type" | awk '{print $2" "$3}')
+    if [ "$force" = true ] || [ "$mesh_type" != "mesh point" ]; then
+        echo "Deleting existing interface mesh0 due to mismatched type or --force flag."
+        sudo ip link delete mesh0
+        sleep 1
+    else
+        mesh_status=$(ip link show mesh0 | grep -o "state [A-Z]*" | awk '{print $2}')
+        if [ "$mesh_status" = "DOWN" ]; then
+            echo "mesh0 is DOWN. Bringing it up..."
+            sudo ip link set mesh0 up
+            echo "Successfully brought up the interface."
+            exit 0
+        fi
+        echo "mesh0 already exists. Joining pollbook_mesh."
+        sudo iw dev mesh0 mesh join pollbook_mesh
+        echo "Successfully joined the network."
+        exit 0
+    fi
 fi
 
 wireless_interface=$(iw dev | awk '/Interface/ {print $2}' | grep -v "wlp9s0")

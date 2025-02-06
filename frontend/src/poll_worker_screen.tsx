@@ -1,16 +1,23 @@
 import { useState } from 'react';
 import { throwIllegalValue } from '@votingworks/basics';
-import type { Voter } from '@votingworks/pollbook-backend';
+import type { Voter, VoterRegistration } from '@votingworks/pollbook-backend';
 import {
   Button,
+  ButtonBar,
   FullScreenIconWrapper,
   FullScreenMessage,
   H1,
   Icons,
+  MainHeader,
 } from '@votingworks/ui';
+import { Redirect, Route, Switch } from 'react-router-dom';
 import { VoterSearchScreen } from './voter_search_screen';
 import { VoterConfirmScreen } from './voter_confirm_screen';
-import { NoNavScreen } from './nav_screen';
+import {
+  NoNavScreen,
+  PollWorkerNavScreen,
+  pollWorkerRoutes,
+} from './nav_screen';
 import { Column } from './layout';
 import { checkInVoter, getDeviceStatuses, registerVoter } from './api';
 import { AddVoterScreen } from './add_voter_screen';
@@ -18,51 +25,20 @@ import { AddVoterScreen } from './add_voter_screen';
 type CheckInFlowState =
   | { step: 'search' }
   | { step: 'confirm'; voter: Voter }
-  | { step: 'voter-registration' }
-  | { step: 'printing-checkin'; voter: Voter }
-  | { step: 'success-checkin'; voter: Voter }
-  | { step: 'printing-registration' }
-  | { step: 'error-registration'; interval: NodeJS.Timeout }
-  | { step: 'success-registration'; voter: Voter };
+  | { step: 'printing'; voter: Voter }
+  | { step: 'success'; voter: Voter };
 
-export function PollWorkerScreen(): JSX.Element | null {
+export function VoterCheckInScreen(): JSX.Element | null {
   const [flowState, setFlowState] = useState<CheckInFlowState>({
     step: 'search',
   });
-  const getDeviceStatusesQuery = getDeviceStatuses.useQuery();
   const checkInVoterMutation = checkInVoter.useMutation();
-  const registerVoterMutation = registerVoter.useMutation();
-
-  if (!getDeviceStatusesQuery.isSuccess) {
-    return null;
-  }
-
-  const { printer } = getDeviceStatusesQuery.data;
-  if (!printer.connected) {
-    return (
-      <NoNavScreen>
-        <Column style={{ justifyContent: 'center', flex: 1 }}>
-          <FullScreenMessage
-            image={
-              <FullScreenIconWrapper>
-                <Icons.Danger />
-              </FullScreenIconWrapper>
-            }
-            title="No Printer Detected"
-          >
-            <p>Connect printer to continue.</p>
-          </FullScreenMessage>
-        </Column>
-      </NoNavScreen>
-    );
-  }
 
   switch (flowState.step) {
     case 'search':
       return (
         <VoterSearchScreen
           onSelect={(voter) => setFlowState({ step: 'confirm', voter })}
-          onAddNewVoter={() => setFlowState({ step: 'voter-registration' })}
         />
       );
 
@@ -72,25 +48,27 @@ export function PollWorkerScreen(): JSX.Element | null {
           voter={flowState.voter}
           onCancel={() => setFlowState({ step: 'search' })}
           onConfirm={(identificationMethod) => {
+            setFlowState({ step: 'printing', voter: flowState.voter });
             checkInVoterMutation.mutate(
               { voterId: flowState.voter.voterId, identificationMethod },
               {
                 onSuccess: () =>
-                  // TODO check mutation result and show error message if necessary
                   setFlowState({
-                    step: 'success-checkin',
+                    step: 'success',
                     voter: flowState.voter,
                   }),
               }
             );
-            setFlowState({ step: 'printing-checkin', voter: flowState.voter });
           }}
         />
       );
 
-    case 'printing-checkin':
+    case 'printing':
       return (
         <NoNavScreen>
+          <MainHeader>
+            <H1>Check In Voter</H1>
+          </MainHeader>
           <Column style={{ justifyContent: 'center', flex: 1 }}>
             <FullScreenMessage
               title="Printing voter receipt…"
@@ -104,9 +82,12 @@ export function PollWorkerScreen(): JSX.Element | null {
         </NoNavScreen>
       );
 
-    case 'success-checkin':
+    case 'success':
       return (
         <NoNavScreen>
+          <MainHeader>
+            <H1>Voter Checked-In</H1>
+          </MainHeader>
           <Column style={{ justifyContent: 'center', flex: 1 }}>
             <FullScreenMessage
               title={null}
@@ -117,28 +98,63 @@ export function PollWorkerScreen(): JSX.Element | null {
               }
             >
               <H1>
-                {flowState.voter.firstName} {flowState.voter.lastName} is
-                checked in
+                {flowState.voter.firstName} {flowState.voter.middleName}{' '}
+                {flowState.voter.lastName} is checked in
               </H1>
               <p>Give the voter their receipt.</p>
-              <Button
-                onPress={() => setFlowState({ step: 'search' })}
-                rightIcon="Next"
-                variant="primary"
-              >
-                Search for Next Voter
-              </Button>
             </FullScreenMessage>
           </Column>
+          <ButtonBar>
+            <Button icon="X" onPress={() => setFlowState({ step: 'search' })}>
+              Close
+            </Button>
+          </ButtonBar>
         </NoNavScreen>
       );
 
-    case 'printing-registration':
+    default:
+      throwIllegalValue(flowState);
+  }
+}
+
+type RegistrationFlowState =
+  | { step: 'register' }
+  | { step: 'printing'; registrationData: VoterRegistration }
+  | { step: 'success'; voter: Voter };
+
+function VoterRegistrationScreen(): JSX.Element {
+  const registerVoterMutation = registerVoter.useMutation();
+  const [flowState, setFlowState] = useState<RegistrationFlowState>({
+    step: 'register',
+  });
+
+  switch (flowState.step) {
+    case 'register':
+      return (
+        <AddVoterScreen
+          onSubmit={(registrationData: VoterRegistration) => {
+            setFlowState({ step: 'printing', registrationData });
+            registerVoterMutation.mutate(
+              { registrationData },
+              {
+                onSuccess: (voter) => {
+                  setFlowState({ step: 'success', voter });
+                },
+              }
+            );
+          }}
+        />
+      );
+
+    case 'printing':
       return (
         <NoNavScreen>
+          <MainHeader>
+            <H1>Register Voter</H1>
+          </MainHeader>
           <Column style={{ justifyContent: 'center', flex: 1 }}>
             <FullScreenMessage
-              title="Printing registration receipt…"
+              title="Printing voter receipt…"
               image={
                 <FullScreenIconWrapper>
                   <Icons.Loading />
@@ -149,9 +165,12 @@ export function PollWorkerScreen(): JSX.Element | null {
         </NoNavScreen>
       );
 
-    case 'success-registration':
+    case 'success':
       return (
         <NoNavScreen>
+          <MainHeader>
+            <H1>Voter Registered</H1>
+          </MainHeader>
           <Column style={{ justifyContent: 'center', flex: 1 }}>
             <FullScreenMessage
               title={null}
@@ -162,80 +181,63 @@ export function PollWorkerScreen(): JSX.Element | null {
               }
             >
               <H1>
-                {flowState.voter.firstName} {flowState.voter.lastName} is
-                registered
+                {flowState.voter.firstName} {flowState.voter.middleName}{' '}
+                {flowState.voter.lastName} is registered
               </H1>
               <p>Give the voter their receipt.</p>
-              <Button
-                onPress={() => setFlowState({ step: 'search' })}
-                rightIcon="Next"
-                variant="primary"
-              >
-                Search for Next Voter
-              </Button>
             </FullScreenMessage>
           </Column>
+          <ButtonBar>
+            <Button icon="X" onPress={() => setFlowState({ step: 'register' })}>
+              Close
+            </Button>
+          </ButtonBar>
         </NoNavScreen>
-      );
-
-    case 'error-registration':
-      return (
-        <NoNavScreen>
-          <Column style={{ justifyContent: 'center', flex: 1 }}>
-            <FullScreenMessage
-              title={null}
-              image={
-                <FullScreenIconWrapper>
-                  <Icons.Danger />
-                </FullScreenIconWrapper>
-              }
-            >
-              <H1>Error registering voter.</H1>
-              <p> Please try again.</p>
-              <Button
-                onPress={() => {
-                  setFlowState({ step: 'search' });
-                  clearInterval(flowState.interval);
-                }}
-                rightIcon="Next"
-                variant="primary"
-              >
-                Back
-              </Button>
-            </FullScreenMessage>
-          </Column>
-        </NoNavScreen>
-      );
-
-    case 'voter-registration':
-      return (
-        <AddVoterScreen
-          onCancel={() => setFlowState({ step: 'search' })}
-          onSubmit={(registration) => {
-            registerVoterMutation.mutate(
-              { registrationData: registration },
-              {
-                onSuccess: (voter) => {
-                  if (!voter) {
-                    const interval = setInterval(() => {
-                      setFlowState({ step: 'search' });
-                    }, 5000);
-                    setFlowState({ step: 'error-registration', interval });
-                    return;
-                  }
-                  setFlowState({
-                    step: 'success-registration',
-                    voter,
-                  });
-                },
-              }
-            );
-            setFlowState({ step: 'printing-registration' });
-          }}
-        />
       );
 
     default:
       throwIllegalValue(flowState);
   }
+}
+
+export function PollWorkerScreen(): JSX.Element | null {
+  const getDeviceStatusesQuery = getDeviceStatuses.useQuery();
+
+  if (!getDeviceStatusesQuery.isSuccess) {
+    return null;
+  }
+
+  const { printer } = getDeviceStatusesQuery.data;
+  if (!printer.connected) {
+    return (
+      <PollWorkerNavScreen>
+        <Column style={{ justifyContent: 'center', flex: 1 }}>
+          <FullScreenMessage
+            image={
+              <FullScreenIconWrapper>
+                <Icons.Danger />
+              </FullScreenIconWrapper>
+            }
+            title="No Printer Detected"
+          >
+            <p>Connect printer to continue.</p>
+          </FullScreenMessage>
+        </Column>
+      </PollWorkerNavScreen>
+    );
+  }
+
+  return (
+    <Switch>
+      <Route
+        path={pollWorkerRoutes.checkIn.path}
+        component={VoterCheckInScreen}
+      />
+      <Route
+        path={pollWorkerRoutes.addVoter.path}
+        component={VoterRegistrationScreen}
+      />
+      <Redirect to={pollWorkerRoutes.checkIn.path} />
+    </Switch>
+  );
 }

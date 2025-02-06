@@ -17,8 +17,8 @@ import React, { useState, useMemo } from 'react';
 import type { Voter, VoterSearchParams } from '@votingworks/pollbook-backend';
 import styled from 'styled-components';
 import { Column, Form, Row, InputGroup } from './layout';
-import { NoNavScreen } from './nav_screen';
-import { getCheckInCounts, logOut, searchVoters } from './api';
+import { PollWorkerNavScreen } from './nav_screen';
+import { getCheckInCounts, getIsAbsenteeMode, searchVoters } from './api';
 
 const VoterTableWrapper = styled(Card)`
   overflow: hidden;
@@ -115,7 +115,7 @@ export function VoterSearch({
                     <tr key={voter.voterId}>
                       <td>
                         <H2 style={{ margin: 0 }}>
-                          {voter.lastName}, {voter.firstName}
+                          {voter.lastName}, {voter.firstName} {voter.middleName}
                         </H2>
                         {voter.party}
                       </td>
@@ -127,7 +127,7 @@ export function VoterSearch({
                           {voter.postalZip5}-{voter.zip4}
                         </Font>
                       </td>
-                      <td>{renderAction(voter)}</td>
+                      <td style={{ width: '1%' }}>{renderAction(voter)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -139,28 +139,41 @@ export function VoterSearch({
   );
 }
 
+const AbsenteeModeCallout = styled(Callout).attrs({ color: 'warning' })`
+  font-size: ${(p) => p.theme.sizes.headingsRem.h4}rem;
+  font-weight: ${(p) => p.theme.sizes.fontWeight.semiBold};
+  > div {
+    padding: 0.5rem 1rem;
+  }
+`;
+
 export function VoterSearchScreen({
   onSelect,
-  onAddNewVoter,
 }: {
   onSelect: (voter: Voter) => void;
-  onAddNewVoter: () => void;
-}): JSX.Element {
+}): JSX.Element | null {
   const getCheckInCountsQuery = getCheckInCounts.useQuery();
-  const logOutMutation = logOut.useMutation();
+  const getIsAbsenteeModeQuery = getIsAbsenteeMode.useQuery();
+
+  if (!getIsAbsenteeModeQuery.isSuccess) {
+    return null;
+  }
+  const isAbsenteeMode = getIsAbsenteeModeQuery.data;
 
   return (
-    <NoNavScreen>
+    <PollWorkerNavScreen>
       <Main flexColumn>
         <MainHeader>
           <Row
             style={{ alignItems: 'center', justifyContent: 'space-between' }}
           >
             <Row style={{ gap: '1rem' }}>
-              <H1>Search Voters</H1>
-              <Button icon="Add" onPress={onAddNewVoter}>
-                Add Voter
-              </Button>
+              <H1>Voter Check-In</H1>
+              {isAbsenteeMode && (
+                <AbsenteeModeCallout icon="Envelope">
+                  Absentee Mode
+                </AbsenteeModeCallout>
+              )}
             </Row>
             <Row style={{ gap: '1rem' }}>
               {getCheckInCountsQuery.data && (
@@ -173,9 +186,6 @@ export function VoterSearchScreen({
                   </LabelledText>
                 </Row>
               )}
-              <Button onPress={() => logOutMutation.mutate()} icon="Lock">
-                Lock Machine
-              </Button>
             </Row>
           </Row>
         </MainHeader>
@@ -193,13 +203,17 @@ export function VoterSearchScreen({
                   color="primary"
                   onPress={() => onSelect(voter)}
                 >
-                  <Font noWrap>Start Check-In</Font>
+                  <Font noWrap>
+                    {isAbsenteeMode
+                      ? 'Start Absentee Check-In'
+                      : 'Start Check-In'}
+                  </Font>
                 </Button>
               )
             }
           />
         </MainContent>
       </Main>
-    </NoNavScreen>
+    </PollWorkerNavScreen>
   );
 }

@@ -10,6 +10,7 @@ import {
   typedAs,
 } from '@votingworks/basics';
 import { safeParseInt, safeParseJson } from '@votingworks/types';
+import { asSqliteBool, fromSqliteBool, SqliteBool } from '@votingworks/utils';
 import { rootDebug } from './debug';
 import {
   ConfigurationStatus,
@@ -368,9 +369,10 @@ export class Store {
           insert into elections (
             election_id,
             election_data,
-            valid_street_data
+            valid_street_data,
+            is_absentee_mode
           ) values (
-            ?, ?, ?
+            ?, ?, ?, 0
           )
         `,
         election.id,
@@ -405,6 +407,27 @@ export class Store {
     });
     this.currentClock = new HybridLogicalClock(this.machineId);
     this.nextEventId = 0;
+  }
+
+  getIsAbsenteeMode(): boolean {
+    const { isAbsenteeMode } = this.client.one(
+      `
+        select
+          is_absentee_mode as isAbsenteeMode
+        from elections
+      `
+    ) as { isAbsenteeMode: SqliteBool };
+    return fromSqliteBool(isAbsenteeMode);
+  }
+
+  setIsAbsenteeMode(isAbsenteeMode: boolean): void {
+    this.client.run(
+      `
+        update elections
+        set is_absentee_mode = ?
+      `,
+      asSqliteBool(isAbsenteeMode)
+    );
   }
 
   groupVotersAlphabeticallyByLastName(

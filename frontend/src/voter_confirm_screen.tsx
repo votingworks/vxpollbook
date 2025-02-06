@@ -156,7 +156,7 @@ export function VoterConfirmScreen({
             </Callout>
             <Card color="primary">
               <H2>
-                {voter.firstName} {voter.lastName}
+                {voter.firstName} {voter.middleName} {voter.lastName}
               </H2>
               <Column style={{ gap: '1rem' }}>
                 <LabelledText label="Party">{voter.party}</LabelledText>

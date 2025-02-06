@@ -2,7 +2,7 @@ import { assert, throwIllegalValue } from '@votingworks/basics';
 import { format } from '@votingworks/utils';
 import { Icons } from '@votingworks/ui';
 import { Voter } from './types';
-import { StyledReceipt } from './receipt_helpers';
+import { DisplayAddress, StyledReceipt } from './receipt_helpers';
 
 function formatPartyName(party: 'DEM' | 'REP' | 'UND'): string {
   switch (party) {
@@ -60,17 +60,7 @@ export function RegistrationReceipt({
         {registrationEvent.firstName} {registrationEvent.suffix}{' '}
         {registrationEvent.middleName} {registrationEvent.lastName}
       </div>
-      <div>
-        {registrationEvent.streetNumber}
-        {registrationEvent.streetSuffix} {registrationEvent.streetName}{' '}
-        {registrationEvent.apartmentUnitNumber}
-      </div>
-      {registrationEvent.addressLine2 === '' ? null : (
-        <div>{registrationEvent.addressLine2}</div>
-      )}
-      <div>
-        {registrationEvent.city}, {voter.state} {registrationEvent.zipCode}
-      </div>
+      <DisplayAddress voter={voter} />
       <div>Party: {formatPartyName(registrationEvent.party)}</div>
     </StyledReceipt>
   );

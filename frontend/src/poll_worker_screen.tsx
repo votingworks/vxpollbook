@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { throwIllegalValue } from '@votingworks/basics';
-import type { Voter, VoterRegistration } from '@votingworks/pollbook-backend';
+import type {
+  Voter,
+  VoterRegistrationRequest,
+} from '@votingworks/pollbook-backend';
 import {
   Button,
   ButtonBar,
@@ -119,7 +122,7 @@ export function VoterCheckInScreen(): JSX.Element | null {
 
 type RegistrationFlowState =
   | { step: 'register' }
-  | { step: 'printing'; registrationData: VoterRegistration }
+  | { step: 'printing'; registrationData: VoterRegistrationRequest }
   | { step: 'success'; voter: Voter };
 
 function VoterRegistrationScreen(): JSX.Element {
@@ -132,7 +135,7 @@ function VoterRegistrationScreen(): JSX.Element {
     case 'register':
       return (
         <AddVoterScreen
-          onSubmit={(registrationData: VoterRegistration) => {
+          onSubmit={(registrationData) => {
             setFlowState({ step: 'printing', registrationData });
             registerVoterMutation.mutate(
               { registrationData },

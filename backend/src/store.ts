@@ -463,7 +463,7 @@ export class Store {
   searchVoters(searchParams: VoterSearchParams): Voter[] | number {
     const voters = this.getVoters();
     assert(voters);
-    const MAX_VOTER_SEARCH_RESULTS = 20;
+    const MAX_VOTER_SEARCH_RESULTS = 50;
     const matchingVoters = Object.values(voters).filter(
       (voter) =>
         voter.lastName
@@ -624,16 +624,14 @@ export class Store {
     );
   }
 
-  registerVoter(
-    voterRegistration: VoterRegistrationRequest
-  ): Voter | undefined {
+  registerVoter(voterRegistration: VoterRegistrationRequest): Voter {
     debug('Registering voter %o', voterRegistration);
     const voters = this.getVoters();
     assert(voters);
-    const isValid = this.isVoterRegistrationValid(voterRegistration);
-    if (!isValid) {
-      return undefined;
-    }
+    assert(
+      this.isVoterRegistrationValid(voterRegistration),
+      'Invalid voter registration'
+    );
     const streetInfo =
       this.getStreetInfoForVoterRegistration(voterRegistration);
     assert(streetInfo);

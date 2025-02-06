@@ -162,12 +162,8 @@ function buildApi(context: AppContext) {
 
     async registerVoter(input: {
       registrationData: VoterRegistrationRequest;
-    }): Promise<Voter | undefined> {
+    }): Promise<Voter> {
       const voter = store.registerVoter(input.registrationData);
-      if (!voter) {
-        return undefined;
-      }
-
       const receipt = React.createElement(RegistrationReceipt, {
         voter,
         machineId,

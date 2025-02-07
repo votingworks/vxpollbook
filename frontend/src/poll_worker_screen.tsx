@@ -21,9 +21,15 @@ import {
   PollWorkerNavScreen,
   pollWorkerRoutes,
 } from './nav_screen';
-import { Column } from './layout';
-import { checkInVoter, getDeviceStatuses, registerVoter } from './api';
+import { Column, Row } from './layout';
+import {
+  checkInVoter,
+  getDeviceStatuses,
+  getIsAbsenteeMode,
+  registerVoter,
+} from './api';
 import { AddVoterScreen } from './add_voter_screen';
+import { AbsenteeModeCallout } from './absentee_mode_callout';
 
 type CheckInFlowState =
   | { step: 'search' }
@@ -36,11 +42,19 @@ export function VoterCheckInScreen(): JSX.Element | null {
     step: 'search',
   });
   const checkInVoterMutation = checkInVoter.useMutation();
+  const getIsAbsenteeModeQuery = getIsAbsenteeMode.useQuery();
+
+  if (!getIsAbsenteeModeQuery.isSuccess) {
+    return null;
+  }
+
+  const isAbsenteeMode = getIsAbsenteeModeQuery.data;
 
   switch (flowState.step) {
     case 'search':
       return (
         <VoterSearchScreen
+          isAbsenteeMode={isAbsenteeMode}
           onSelect={(voter) => setFlowState({ step: 'confirm', voter })}
         />
       );
@@ -49,6 +63,7 @@ export function VoterCheckInScreen(): JSX.Element | null {
       return (
         <VoterConfirmScreen
           voter={flowState.voter}
+          isAbsenteeMode={isAbsenteeMode}
           onCancel={() => setFlowState({ step: 'search' })}
           onConfirm={(identificationMethod) => {
             setFlowState({ step: 'printing', voter: flowState.voter });
@@ -70,7 +85,10 @@ export function VoterCheckInScreen(): JSX.Element | null {
       return (
         <NoNavScreen>
           <MainHeader>
-            <H1>Check In Voter</H1>
+            <Row style={{ justifyContent: 'space-between' }}>
+              <H1>Check In Voter</H1>
+              {isAbsenteeMode && <AbsenteeModeCallout />}
+            </Row>
           </MainHeader>
           <Column style={{ justifyContent: 'center', flex: 1 }}>
             <FullScreenMessage
@@ -89,7 +107,10 @@ export function VoterCheckInScreen(): JSX.Element | null {
       return (
         <NoNavScreen>
           <MainHeader>
-            <H1>Voter Checked-In</H1>
+            <Row style={{ justifyContent: 'space-between' }}>
+              <H1>Voter Checked In</H1>
+              {isAbsenteeMode && <AbsenteeModeCallout />}
+            </Row>
           </MainHeader>
           <Column style={{ justifyContent: 'center', flex: 1 }}>
             <FullScreenMessage
@@ -104,7 +125,7 @@ export function VoterCheckInScreen(): JSX.Element | null {
                 {flowState.voter.firstName} {flowState.voter.middleName}{' '}
                 {flowState.voter.lastName} is checked in
               </H1>
-              <p>Give the voter their receipt.</p>
+              {!isAbsenteeMode && <p>Give the voter their receipt.</p>}
             </FullScreenMessage>
           </Column>
           <ButtonBar>

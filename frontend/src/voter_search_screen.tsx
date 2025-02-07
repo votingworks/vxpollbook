@@ -18,7 +18,8 @@ import type { Voter, VoterSearchParams } from '@votingworks/pollbook-backend';
 import styled from 'styled-components';
 import { Column, Form, Row, InputGroup } from './layout';
 import { PollWorkerNavScreen } from './nav_screen';
-import { getCheckInCounts, getIsAbsenteeMode, searchVoters } from './api';
+import { getCheckInCounts, searchVoters } from './api';
+import { AbsenteeModeCallout } from './absentee_mode_callout';
 
 const VoterTableWrapper = styled(Card)`
   overflow: hidden;
@@ -139,26 +140,14 @@ export function VoterSearch({
   );
 }
 
-const AbsenteeModeCallout = styled(Callout).attrs({ color: 'warning' })`
-  font-size: ${(p) => p.theme.sizes.headingsRem.h4}rem;
-  font-weight: ${(p) => p.theme.sizes.fontWeight.semiBold};
-  > div {
-    padding: 0.5rem 1rem;
-  }
-`;
-
 export function VoterSearchScreen({
+  isAbsenteeMode,
   onSelect,
 }: {
+  isAbsenteeMode: boolean;
   onSelect: (voter: Voter) => void;
 }): JSX.Element | null {
   const getCheckInCountsQuery = getCheckInCounts.useQuery();
-  const getIsAbsenteeModeQuery = getIsAbsenteeMode.useQuery();
-
-  if (!getIsAbsenteeModeQuery.isSuccess) {
-    return null;
-  }
-  const isAbsenteeMode = getIsAbsenteeModeQuery.data;
 
   return (
     <PollWorkerNavScreen>
@@ -169,11 +158,6 @@ export function VoterSearchScreen({
           >
             <Row style={{ gap: '1rem' }}>
               <H1>Voter Check-In</H1>
-              {isAbsenteeMode && (
-                <AbsenteeModeCallout icon="Envelope">
-                  Absentee Mode
-                </AbsenteeModeCallout>
-              )}
             </Row>
             <Row style={{ gap: '1rem' }}>
               {getCheckInCountsQuery.data && (
@@ -186,6 +170,7 @@ export function VoterSearchScreen({
                   </LabelledText>
                 </Row>
               )}
+              {isAbsenteeMode && <AbsenteeModeCallout />}
             </Row>
           </Row>
         </MainHeader>

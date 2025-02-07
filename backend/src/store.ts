@@ -500,6 +500,7 @@ export class Store {
     const isoTimestamp = new Date().toISOString();
     voter.checkIn = {
       identificationMethod,
+      isAbsentee: this.getIsAbsenteeMode(),
       machineId: this.machineId,
       timestamp: isoTimestamp, // human readable timestamp for paper backup
     };

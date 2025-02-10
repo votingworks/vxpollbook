@@ -169,11 +169,9 @@ function NetworkStatus({ status }: { status: NetworkStatus }) {
           }
           actions={
             <React.Fragment>
-              {status.isOnline ? null : (
-                <Button onPress={resetNetworkConnection} color="primary">
-                  Reset Network
-                </Button>
-              )}
+              <Button onPress={resetNetworkConnection} color="primary">
+                Reset Network
+              </Button>
               <Button onPress={() => setShowModal(false)}>Close</Button>
             </React.Fragment>
           }

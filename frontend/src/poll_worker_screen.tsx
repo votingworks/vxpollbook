@@ -29,7 +29,7 @@ import {
   registerVoter,
 } from './api';
 import { AddVoterScreen } from './add_voter_screen';
-import { AbsenteeModeCallout } from './absentee_mode_callout';
+import { AbsenteeModeCallout, VoterName } from './shared_components';
 
 type CheckInFlowState =
   | { step: 'search' }
@@ -122,8 +122,7 @@ export function VoterCheckInScreen(): JSX.Element | null {
               }
             >
               <H1>
-                {flowState.voter.firstName} {flowState.voter.middleName}{' '}
-                {flowState.voter.lastName} is checked in
+                <VoterName voter={flowState.voter} /> is checked in
               </H1>
               {!isAbsenteeMode && <p>Give the voter their receipt.</p>}
             </FullScreenMessage>
@@ -205,8 +204,7 @@ function VoterRegistrationScreen(): JSX.Element {
               }
             >
               <H1>
-                {flowState.voter.firstName} {flowState.voter.middleName}{' '}
-                {flowState.voter.lastName} is registered
+                <VoterName voter={flowState.voter} /> is registered
               </H1>
               <p>Give the voter their receipt.</p>
             </FullScreenMessage>

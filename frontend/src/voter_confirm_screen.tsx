@@ -3,7 +3,6 @@ import {
   ButtonBar,
   Callout,
   Card,
-  Font,
   H1,
   H2,
   LabelledText,
@@ -21,7 +20,11 @@ import { assert, throwIllegalValue } from '@votingworks/basics';
 import { Column, FieldName, Row } from './layout';
 import { NoNavScreen } from './nav_screen';
 import { usStates } from './us_states';
-import { AbsenteeModeCallout } from './absentee_mode_callout';
+import {
+  AbsenteeModeCallout,
+  VoterAddress,
+  VoterName,
+} from './shared_components';
 
 function isIdentificationMethodComplete(
   identificationMethod: Partial<VoterIdentificationMethod>
@@ -169,19 +172,12 @@ export function VoterConfirmScreen({
             )}
             <Card color="neutral">
               <H2>
-                {voter.firstName} {voter.middleName} {voter.lastName}
+                <VoterName voter={voter} />
               </H2>
               <Column style={{ gap: '1rem' }}>
                 <LabelledText label="Party">{voter.party}</LabelledText>
                 <LabelledText label="Address">
-                  <div>
-                    {voter.streetNumber} {voter.streetName}
-                    <br />
-                    <Font noWrap>
-                      {voter.postalCityTown}, {voter.state}, {voter.postalZip5}-
-                      {voter.zip4}
-                    </Font>
-                  </div>
+                  <VoterAddress voter={voter} />
                 </LabelledText>
                 <LabelledText label="Voter ID">{voter.voterId}</LabelledText>
               </Column>
@@ -200,7 +196,7 @@ export function VoterConfirmScreen({
           }}
           style={{ flex: 1 }}
         >
-          {isAbsenteeMode ? 'Confirm Absentee Check-In' : 'Confirm Check-In'}
+          Confirm Check-In
         </Button>
         <Button onPress={onCancel} style={{ flex: 1 }}>
           Cancel

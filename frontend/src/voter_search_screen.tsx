@@ -19,7 +19,11 @@ import styled from 'styled-components';
 import { Column, Form, Row, InputGroup } from './layout';
 import { PollWorkerNavScreen } from './nav_screen';
 import { getCheckInCounts, searchVoters } from './api';
-import { AbsenteeModeCallout } from './absentee_mode_callout';
+import {
+  AbsenteeModeCallout,
+  VoterAddress,
+  VoterName,
+} from './shared_components';
 
 const VoterTableWrapper = styled(Card)`
   overflow: hidden;
@@ -116,17 +120,12 @@ export function VoterSearch({
                     <tr key={voter.voterId}>
                       <td>
                         <H2 style={{ margin: 0 }}>
-                          {voter.lastName}, {voter.firstName} {voter.middleName}
+                          <VoterName voter={voter} lastNameFirst />
                         </H2>
                         {voter.party}
                       </td>
                       <td>
-                        {voter.streetNumber} {voter.streetName}
-                        <br />
-                        <Font noWrap>
-                          {voter.postalCityTown}, {voter.state},{' '}
-                          {voter.postalZip5}-{voter.zip4}
-                        </Font>
+                        <VoterAddress voter={voter} />
                       </td>
                       <td style={{ width: '1%' }}>{renderAction(voter)}</td>
                     </tr>
@@ -188,11 +187,7 @@ export function VoterSearchScreen({
                   color="primary"
                   onPress={() => onSelect(voter)}
                 >
-                  <Font noWrap>
-                    {isAbsenteeMode
-                      ? 'Start Absentee Check-In'
-                      : 'Start Check-In'}
-                  </Font>
+                  <Font noWrap>Start Check-In</Font>
                 </Button>
               )
             }

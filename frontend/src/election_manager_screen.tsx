@@ -76,7 +76,9 @@ export function VotersScreen(): JSX.Element {
               </Button>
             ) : (
               <Row style={{ gap: '0.5rem' }}>
-                <Icons.X /> Not Checked In
+                <Font noWrap>
+                  <Icons.X /> Not Checked In
+                </Font>
               </Row>
             )
           }
@@ -102,8 +104,8 @@ export function SettingsScreen(): JSX.Element | null {
           label="Check-In Mode"
           selectedOptionId={isAbsenteeMode ? 'absentee' : 'precinct'}
           options={[
-            { label: 'Precinct Voter', id: 'precinct' },
-            { label: 'Absentee Voter', id: 'absentee', icon: 'Envelope' },
+            { label: 'Precinct Mode', id: 'precinct' },
+            { label: 'Absentee Mode', id: 'absentee', icon: 'Envelope' },
           ]}
           onChange={(selectedId) =>
             setIsAbsenteeModeMutation.mutate({

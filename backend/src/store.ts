@@ -435,12 +435,16 @@ export class Store {
   ): Array<Voter[]> {
     const voters = this.getVoters();
     assert(voters);
-    return groupBy(
+    const groups = groupBy(
       Object.values(voters).filter(
         (v) => includeNewRegistrations || v.registrationEvent === undefined
       ),
       (v) => v.lastName[0].toUpperCase()
     ).map(([, voterGroup]) => voterGroup);
+    // eslint-disable-next-line vx/no-array-sort-mutation
+    return groups.sort((group1, group2) =>
+      group1[0].lastName[0].localeCompare(group2[0].lastName[0])
+    );
   }
 
   /* Helper function to get all voters in the database - only used in tests */

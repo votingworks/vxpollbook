@@ -162,7 +162,7 @@ export function VoterChecklistTable({
                       supervisor: 'S',
                       moderator: 'M',
                       cityClerk: 'C',
-                    }[voter.checkIn.identificationMethod.recognizer]
+                    }[voter.checkIn.identificationMethod.recognizerType]
                   }
                 </span>
               ) : (

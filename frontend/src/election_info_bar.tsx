@@ -1,16 +1,14 @@
 import React from 'react';
-
-import {
-  ElectionDefinition,
-  formatElectionHashes,
-  PrecinctSelection,
-} from '@votingworks/types';
+import { PrecinctSelection } from '@votingworks/types';
 import styled from 'styled-components';
-import { assertDefined } from '@votingworks/basics';
-import { Seal } from './seal';
-import { Caption, Font } from './typography';
-import { LabelledText } from './labelled_text';
-import { electionStrings, PrecinctSelectionName } from './ui_strings';
+import {
+  Caption,
+  Font,
+  LabelledText,
+  PrecinctSelectionName,
+  DateString,
+} from '@votingworks/ui';
+import type { Election } from '@votingworks/pollbook-backend';
 
 const Bar = styled.div<{ inverse?: boolean }>`
   background: ${(p) => p.inverse && p.theme.colors.inverseBackground};
@@ -41,45 +39,35 @@ const SystemInfoContainer = styled.div`
   justify-content: flex-end;
 `;
 
-export type InfoBarMode = 'voter' | 'pollworker' | 'admin';
-
 export interface ElectionInfoBarProps {
-  mode?: InfoBarMode;
-  electionDefinition?: ElectionDefinition;
-  electionPackageHash?: string;
+  election?: Election;
   codeVersion?: string;
   machineId?: string;
-  precinctSelection?: PrecinctSelection;
   inverse?: boolean;
 }
 export function ElectionInfoBar({
-  mode = 'voter',
-  electionDefinition,
-  electionPackageHash,
+  election,
   codeVersion,
   machineId,
-  precinctSelection,
   inverse,
 }: ElectionInfoBarProps): JSX.Element {
-  const codeVersionInfo =
-    mode !== 'voter' && codeVersion ? (
-      <Caption noWrap>
-        <LabelledText label="Version">
-          <Font weight="bold">{codeVersion}</Font>
-        </LabelledText>
-      </Caption>
-    ) : null;
+  const codeVersionInfo = codeVersion ? (
+    <Caption noWrap>
+      <LabelledText label="Version">
+        <Font weight="bold">{codeVersion}</Font>
+      </LabelledText>
+    </Caption>
+  ) : null;
 
-  const machineIdInfo =
-    mode !== 'voter' && machineId ? (
-      <Caption noWrap>
-        <LabelledText label="Machine ID">
-          <Font weight="bold">{machineId}</Font>
-        </LabelledText>
-      </Caption>
-    ) : null;
+  const machineIdInfo = machineId ? (
+    <Caption noWrap>
+      <LabelledText label="Machine ID">
+        <Font weight="bold">{machineId}</Font>
+      </LabelledText>
+    </Caption>
+  ) : null;
 
-  if (!electionDefinition) {
+  if (!election) {
     return (
       <Bar data-testid="electionInfoBar" inverse={inverse}>
         <SystemInfoContainer>
@@ -90,32 +78,17 @@ export function ElectionInfoBar({
     );
   }
 
-  const {
-    election,
-    election: { precincts, county, seal },
-  } = electionDefinition;
-
-  const electionInfoLabel = (
-    <Font maxLines={2}>
-      {precinctSelection && (
-        <React.Fragment>
-          <PrecinctSelectionName
-            electionPrecincts={precincts}
-            precinctSelection={precinctSelection}
-          />
-          ,{' '}
-        </React.Fragment>
-      )}
-      {electionStrings.countyName(county)},{' '}
-      {electionStrings.stateName(election)}
-    </Font>
-  );
+  const electionInfoLabel = <Font maxLines={2}>Milford, NH</Font>;
 
   const electionInfo = (
     <Caption weight="regular">
       <LabelledText labelPosition="bottom" label={electionInfoLabel}>
-        <Font weight="bold">{electionStrings.electionTitle(election)}</Font> —{' '}
-        <Font noWrap>{electionStrings.electionDate(election)}</Font>
+        <Font weight="bold">{election.title}</Font> —{' '}
+        <Font noWrap>
+          <DateString
+            value={election.date.toMidnightDatetimeWithSystemTimezone()}
+          />
+        </Font>
       </LabelledText>
     </Caption>
   );
@@ -123,12 +96,7 @@ export function ElectionInfoBar({
   const electionIdInfo = (
     <Caption>
       <LabelledText label="Election ID">
-        <Font weight="bold">
-          {formatElectionHashes(
-            electionDefinition.ballotHash,
-            assertDefined(electionPackageHash)
-          )}
-        </Font>
+        <Font weight="bold">{election.id}</Font>
       </LabelledText>
     </Caption>
   );
@@ -136,7 +104,7 @@ export function ElectionInfoBar({
   return (
     <Bar data-testid="electionInfoBar" inverse={inverse}>
       <ElectionInfoContainer>
-        <Seal seal={seal} maxWidth="2.25rem" inverse={inverse} />
+        {/* <Seal seal={seal} maxWidth="2.25rem" inverse={inverse} /> */}
         {electionInfo}
       </ElectionInfoContainer>
       <SystemInfoContainer>
@@ -157,25 +125,22 @@ const VerticalBar = styled.div<{ inverse?: boolean }>`
 `;
 
 export function VerticalElectionInfoBar({
-  mode = 'voter',
-  electionDefinition,
-  electionPackageHash,
+  election,
   codeVersion,
   machineId,
-  precinctSelection,
   inverse,
 }: ElectionInfoBarProps): JSX.Element {
-  if (!electionDefinition) {
+  if (!election) {
     return (
       <VerticalBar inverse={inverse}>
         <Caption>
-          {mode !== 'voter' && codeVersion && (
+          {codeVersion && (
             <div>
               Version: <Font weight="semiBold">{codeVersion}</Font>
             </div>
           )}
 
-          {mode !== 'voter' && machineId && (
+          {machineId && (
             <div>
               Machine ID: <Font weight="semiBold">{machineId}</Font>
             </div>
@@ -184,61 +149,41 @@ export function VerticalElectionInfoBar({
       </VerticalBar>
     );
   }
-  const {
-    election,
-    election: { precincts, county, seal },
-  } = electionDefinition;
 
   return (
     <VerticalBar inverse={inverse}>
       <ElectionInfoContainer>
-        <Seal seal={seal} maxWidth="3rem" inverse={inverse} />
+        {/* <Seal seal={seal} maxWidth="3rem" inverse={inverse} /> */}
 
         <Caption weight="regular" align="left">
           <Font weight="bold" maxLines={4}>
-            {electionStrings.electionTitle(election)}
+            {election.title}
           </Font>
-          {precinctSelection && (
-            <Font maxLines={4}>
-              <PrecinctSelectionName
-                electionPrecincts={precincts}
-                precinctSelection={precinctSelection}
-              />
-            </Font>
-          )}
-
+          <Font maxLines={4}>Milford, NH</Font>
           <div>
-            <Font maxLines={4}>
-              {electionStrings.countyName(county)},{' '}
-              {electionStrings.stateName(election)}
-            </Font>
+            <DateString
+              value={election.date.toMidnightDatetimeWithSystemTimezone()}
+            />
           </div>
-
-          <div>{electionStrings.electionDate(election)}</div>
         </Caption>
       </ElectionInfoContainer>
 
       <Caption>
-        {mode !== 'voter' && codeVersion && (
+        {codeVersion && (
           <div>
             Version: <Font weight="semiBold">{codeVersion}</Font>
           </div>
         )}
 
-        {mode !== 'voter' && machineId && (
+        {machineId && (
           <div>
             Machine ID: <Font weight="semiBold">{machineId}</Font>
           </div>
         )}
 
         <div>
-          Election ID:{' '}
-          <Font weight="semiBold">
-            {formatElectionHashes(
-              electionDefinition.ballotHash,
-              assertDefined(electionPackageHash)
-            )}
-          </Font>
+          Election ID:
+          <Font weight="semiBold">{election.id}</Font>
         </div>
       </Caption>
     </VerticalBar>

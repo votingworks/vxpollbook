@@ -2,6 +2,7 @@ import { DateWithoutTime } from '@votingworks/basics';
 import * as grout from '@votingworks/grout';
 import z from 'zod';
 import {
+  CountySchema,
   ElectionIdSchema,
   PrinterStatus,
   Election as VxSuiteElection,
@@ -33,7 +34,7 @@ export interface Workspace {
 
 export type Election = Pick<
   VxSuiteElection,
-  'id' | 'title' | 'date' | 'precincts'
+  'id' | 'title' | 'date' | 'precincts' | 'county' | 'state' | 'seal'
 >;
 
 export const ElectionSchema: z.ZodSchema<
@@ -55,6 +56,9 @@ export const ElectionSchema: z.ZodSchema<
       })
     )
     .min(1),
+  county: CountySchema,
+  state: z.string(),
+  seal: z.string(),
 });
 
 export enum EventType {

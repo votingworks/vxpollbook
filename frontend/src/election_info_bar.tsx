@@ -7,6 +7,7 @@ import {
   LabelledText,
   PrecinctSelectionName,
   DateString,
+  Seal,
 } from '@votingworks/ui';
 import type { Election } from '@votingworks/pollbook-backend';
 
@@ -78,7 +79,11 @@ export function ElectionInfoBar({
     );
   }
 
-  const electionInfoLabel = <Font maxLines={2}>Milford, NH</Font>;
+  const electionInfoLabel = (
+    <Font maxLines={2}>
+      {election.county.name}, {election.state}
+    </Font>
+  );
 
   const electionInfo = (
     <Caption weight="regular">
@@ -104,7 +109,7 @@ export function ElectionInfoBar({
   return (
     <Bar data-testid="electionInfoBar" inverse={inverse}>
       <ElectionInfoContainer>
-        {/* <Seal seal={seal} maxWidth="2.25rem" inverse={inverse} /> */}
+        <Seal seal={election.seal} maxWidth="2.25rem" inverse={inverse} />
         {electionInfo}
       </ElectionInfoContainer>
       <SystemInfoContainer>
@@ -153,13 +158,15 @@ export function VerticalElectionInfoBar({
   return (
     <VerticalBar inverse={inverse}>
       <ElectionInfoContainer>
-        {/* <Seal seal={seal} maxWidth="3rem" inverse={inverse} /> */}
+        <Seal seal={election.seal} maxWidth="3rem" inverse={inverse} />
 
         <Caption weight="regular" align="left">
           <Font weight="bold" maxLines={4}>
             {election.title}
           </Font>
-          <Font maxLines={4}>Milford, NH</Font>
+          <Font maxLines={4}>
+            {election.county.name}, {election.state}
+          </Font>
           <div>
             <DateString
               value={election.date.toMidnightDatetimeWithSystemTimezone()}

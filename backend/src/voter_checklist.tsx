@@ -6,7 +6,10 @@ import {
 import { createCanvas } from 'canvas';
 import JsBarcode from 'jsbarcode';
 import { format } from '@votingworks/utils';
-import { Voter } from './types';
+import React from 'react';
+import { Voter, VoterGroup } from './types';
+
+const ROWS_PER_PAGE = 16;
 
 const grayBackgroundColor = DesktopPalette.Gray10;
 const redTextColor = DesktopPalette.Red80;
@@ -192,15 +195,119 @@ export function VoterChecklistTable({
   );
 }
 
+export function NewRegistrationsVoterChecklistTable({
+  voters,
+}: {
+  voters: Voter[];
+}): JSX.Element {
+  const emptyRows =
+    ROWS_PER_PAGE > voters.length ? ROWS_PER_PAGE - voters.length : 0;
+  return (
+    <VoterTable>
+      <thead>
+        <tr>
+          <th />
+          <th />
+          <th>Party</th>
+          <th>Voter Name</th>
+          <th>OOS&nbsp;DL</th>
+          <th>PR</th>
+          <th>Domicile Address</th>
+          <th>Dist</th>
+        </tr>
+      </thead>
+      <tbody>
+        {voters.map((voter) => (
+          <tr key={voter.voterId}>
+            <td>
+              {voter.checkIn?.isAbsentee && (
+                <span style={{ color: redTextColor }}>A.V.</span>
+              )}
+            </td>
+            <td>{voter.checkIn ? '☑' : '☐'}</td>
+            <td>{voter.party}</td>
+            <td>
+              <span
+                style={{
+                  textDecoration: voter.checkIn ? 'line-through' : 'none',
+                }}
+              >
+                {voter.lastName}
+              </span>
+              , {voter.suffix} {voter.firstName} {voter.middleName}
+            </td>
+            <td>
+              {voter.checkIn?.identificationMethod.type === 'photoId' &&
+              voter.checkIn.identificationMethod.state !== 'NH' ? (
+                <u>
+                  <span style={{ color: redTextColor }}>
+                    {voter.checkIn.identificationMethod.state}
+                  </span>
+                </u>
+              ) : (
+                '__'
+              )}
+            </td>
+            <td>
+              {voter.checkIn?.identificationMethod.type ===
+              'personalRecognizance' ? (
+                <span style={{ color: redTextColor }}>
+                  {
+                    {
+                      supervisor: 'S',
+                      moderator: 'M',
+                      cityClerk: 'C',
+                    }[voter.checkIn.identificationMethod.recognizer]
+                  }
+                </span>
+              ) : (
+                '__'
+              )}
+            </td>
+            <td>
+              {voter.streetNumber}
+              {voter.addressSuffix} {voter.houseFractionNumber}{' '}
+              {voter.streetName} {voter.apartmentUnitNumber}
+              {voter.addressLine2 && <div>{voter.addressLine2}</div>}
+            </td>
+            <td>{voter.district}</td>
+          </tr>
+        ))}
+        {Array.from({ length: emptyRows }).map((_, index) => (
+          <tr key={`empty-${index}`}>
+            <td />
+            <td> ☐ </td>
+            <td />
+            <td />
+            <td />
+            <td />
+            <td />
+            <td />
+          </tr>
+        ))}
+      </tbody>
+    </VoterTable>
+  );
+}
+
 export function VoterChecklist({
   voterGroups,
 }: {
-  voterGroups: Array<Voter[]>;
+  voterGroups: VoterGroup[];
 }): JSX.Element {
   return (
     <>
-      {voterGroups.map((voters, index) => (
-        <VoterChecklistTable key={index} voters={voters} />
+      {voterGroups.map((voterGroup, index) => (
+        <React.Fragment key={index}>
+          <VoterChecklistTable
+            key={`existing-${index}`}
+            voters={voterGroup.existingVoters}
+          />
+          <NewRegistrationsVoterChecklistTable
+            key={`new-${index}`}
+            voters={voterGroup.newRegistrations}
+          />
+        </React.Fragment>
       ))}
     </>
   );

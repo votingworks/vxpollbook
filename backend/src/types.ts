@@ -14,12 +14,16 @@ import type { Api } from './app';
 import { HlcTimestamp } from './hybrid_logical_clock';
 import type { Store } from './store';
 
-export interface AppContext {
+export interface MachineConfig {
+  machineId: string;
+  codeVersion: string;
+}
+
+export interface AppContext extends MachineConfig {
   workspace: Workspace;
   auth: DippedSmartCardAuthApi;
   usbDrive: UsbDrive;
   printer: Printer;
-  machineId: string;
 }
 
 export interface Workspace {

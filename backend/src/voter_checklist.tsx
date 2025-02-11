@@ -102,6 +102,72 @@ const VoterTable = styled.table`
   page-break-after: always;
 `;
 
+export function MarginDetails({ voter }: { voter: Voter }): JSX.Element {
+  return (
+    <React.Fragment>
+      {voter.checkIn?.isAbsentee && (
+        <span style={{ color: redTextColor }}>A.V.</span>
+      )}
+      {voter.checkIn?.identificationMethod.type === 'personalRecognizance' && (
+        <span style={{ color: redTextColor }}>
+          P-
+          {
+            {
+              supervisor: 'S',
+              moderator: 'M',
+              cityClerk: 'C',
+            }[voter.checkIn.identificationMethod.recognizerType]
+          }
+          -{voter.checkIn.identificationMethod.recognizerInitials}
+        </span>
+      )}
+    </React.Fragment>
+  );
+}
+
+export function VoterName({ voter }: { voter: Voter }): JSX.Element {
+  return (
+    <React.Fragment>
+      <span
+        style={{
+          textDecoration: voter.checkIn ? 'line-through' : 'none',
+        }}
+      >
+        {voter.lastName}
+      </span>
+      , {voter.suffix} {voter.firstName} {voter.middleName}
+    </React.Fragment>
+  );
+}
+
+export function VoterCheckInDetails({ voter }: { voter: Voter }): JSX.Element {
+  return (
+    <React.Fragment>
+      {voter.checkIn?.identificationMethod.type === 'photoId' &&
+      voter.checkIn.identificationMethod.state !== 'NH' ? (
+        <u>
+          <span style={{ color: redTextColor }}>
+            {voter.checkIn.identificationMethod.state}
+          </span>
+        </u>
+      ) : (
+        '__'
+      )}
+    </React.Fragment>
+  );
+}
+
+export function VoterDomicileAddress({ voter }: { voter: Voter }): JSX.Element {
+  return (
+    <React.Fragment>
+      {voter.streetNumber}
+      {voter.addressSuffix} {voter.houseFractionNumber} {voter.streetName}{' '}
+      {voter.apartmentUnitNumber}
+      {voter.addressLine2 && <div>{voter.addressLine2}</div>}
+    </React.Fragment>
+  );
+}
+
 export function VoterChecklistTable({
   voters,
 }: {
@@ -127,53 +193,18 @@ export function VoterChecklistTable({
         {voters.map((voter) => (
           <tr key={voter.voterId}>
             <td>
-              {voter.checkIn?.isAbsentee && (
-                <span style={{ color: redTextColor }}>A.V.</span>
-              )}
-              {voter.checkIn?.identificationMethod.type ===
-                'personalRecognizance' && (
-                <span style={{ color: redTextColor }}>
-                  P-
-                  {
-                    {
-                      supervisor: 'S',
-                      moderator: 'M',
-                      cityClerk: 'C',
-                    }[voter.checkIn.identificationMethod.recognizerType]
-                  }
-                  -{voter.checkIn.identificationMethod.recognizerInitials}
-                </span>
-              )}
+              <MarginDetails voter={voter} />
             </td>
             <td>{voter.checkIn ? '☑' : '☐'}</td>
             <td>{voter.party}</td>
             <td>
-              <span
-                style={{
-                  textDecoration: voter.checkIn ? 'line-through' : 'none',
-                }}
-              >
-                {voter.lastName}
-              </span>
-              , {voter.suffix} {voter.firstName} {voter.middleName}
+              <VoterName voter={voter} />
             </td>
             <td>
-              {voter.checkIn?.identificationMethod.type === 'photoId' &&
-              voter.checkIn.identificationMethod.state !== 'NH' ? (
-                <u>
-                  <span style={{ color: redTextColor }}>
-                    {voter.checkIn.identificationMethod.state}
-                  </span>
-                </u>
-              ) : (
-                '__'
-              )}
+              <VoterCheckInDetails voter={voter} />
             </td>
             <td>
-              {voter.streetNumber}
-              {voter.addressSuffix} {voter.houseFractionNumber}{' '}
-              {voter.streetName} {voter.apartmentUnitNumber}
-              {voter.addressLine2 && <div>{voter.addressLine2}</div>}
+              <VoterDomicileAddress voter={voter} />
             </td>
             <td>
               {voter.mailingStreetNumber} {voter.mailingSuffix}{' '}
@@ -211,7 +242,6 @@ export function NewRegistrationsVoterChecklistTable({
           <th>Party</th>
           <th>Voter Name</th>
           <th>OOS&nbsp;DL</th>
-          <th>PR</th>
           <th>Domicile Address</th>
           <th>Dist</th>
         </tr>
@@ -220,55 +250,18 @@ export function NewRegistrationsVoterChecklistTable({
         {voters.map((voter) => (
           <tr key={voter.voterId}>
             <td>
-              {voter.checkIn?.isAbsentee && (
-                <span style={{ color: redTextColor }}>A.V.</span>
-              )}
+              <MarginDetails voter={voter} />
             </td>
             <td>{voter.checkIn ? '☑' : '☐'}</td>
             <td>{voter.party}</td>
             <td>
-              <span
-                style={{
-                  textDecoration: voter.checkIn ? 'line-through' : 'none',
-                }}
-              >
-                {voter.lastName}
-              </span>
-              , {voter.suffix} {voter.firstName} {voter.middleName}
+              <VoterName voter={voter} />
             </td>
             <td>
-              {voter.checkIn?.identificationMethod.type === 'photoId' &&
-              voter.checkIn.identificationMethod.state !== 'NH' ? (
-                <u>
-                  <span style={{ color: redTextColor }}>
-                    {voter.checkIn.identificationMethod.state}
-                  </span>
-                </u>
-              ) : (
-                '__'
-              )}
+              <VoterCheckInDetails voter={voter} />
             </td>
             <td>
-              {voter.checkIn?.identificationMethod.type ===
-              'personalRecognizance' ? (
-                <span style={{ color: redTextColor }}>
-                  {
-                    {
-                      supervisor: 'S',
-                      moderator: 'M',
-                      cityClerk: 'C',
-                    }[voter.checkIn.identificationMethod.recognizer]
-                  }
-                </span>
-              ) : (
-                '__'
-              )}
-            </td>
-            <td>
-              {voter.streetNumber}
-              {voter.addressSuffix} {voter.houseFractionNumber}{' '}
-              {voter.streetName} {voter.apartmentUnitNumber}
-              {voter.addressLine2 && <div>{voter.addressLine2}</div>}
+              <VoterDomicileAddress voter={voter} />
             </td>
             <td>{voter.district}</td>
           </tr>

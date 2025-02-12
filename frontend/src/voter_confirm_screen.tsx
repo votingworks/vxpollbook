@@ -5,7 +5,6 @@ import {
   Card,
   H1,
   H2,
-  Icons,
   LabelledText,
   MainContent,
   MainHeader,
@@ -45,10 +44,6 @@ function isIdentificationMethodComplete(
       throwIllegalValue(identificationMethod);
   }
 }
-
-const UpdatedAddress = styled.div`
-  color: ${(p) => p.theme.colors.primary};
-`;
 
 export function VoterConfirmScreen({
   voterId,
@@ -227,15 +222,22 @@ export function VoterConfirmScreen({
               <Column style={{ gap: '1rem' }}>
                 <LabelledText label="Party">{voter.party}</LabelledText>
                 <Row style={{ gap: '1.5rem' }}>
-                  <LabelledText label="Address">
-                    <VoterAddress voter={voter} />
+                  <LabelledText
+                    label={voter.addressChange ? <s>Address</s> : 'Address'}
+                  >
+                    <VoterAddress
+                      voter={voter}
+                      style={
+                        voter.addressChange && {
+                          textDecoration: 'line-through',
+                        }
+                      }
+                    />
                   </LabelledText>
                   {voter.addressChange && (
-                    <UpdatedAddress>
-                      <LabelledText label="Updated Address">
-                        <AddressChange address={voter.addressChange} />
-                      </LabelledText>
-                    </UpdatedAddress>
+                    <LabelledText label="Updated Address">
+                      <AddressChange address={voter.addressChange} />
+                    </LabelledText>
                   )}
                 </Row>
                 <LabelledText label="Voter ID">{voter.voterId}</LabelledText>

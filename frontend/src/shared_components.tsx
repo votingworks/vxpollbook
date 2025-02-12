@@ -33,9 +33,15 @@ export function VoterName({
   );
 }
 
-export function VoterAddress({ voter }: { voter: Voter }): JSX.Element {
+export function VoterAddress({
+  voter,
+  style,
+}: {
+  voter: Voter;
+  style?: React.CSSProperties;
+}): JSX.Element {
   return (
-    <div>
+    <div style={style}>
       <div>
         {voter.streetNumber} {voter.addressSuffix} {voter.houseFractionNumber}{' '}
         {voter.streetName} {voter.apartmentUnitNumber}

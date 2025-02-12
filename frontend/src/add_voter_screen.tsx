@@ -11,10 +11,7 @@ import { useMemo, useState } from 'react';
 import type { VoterRegistrationRequest } from '@votingworks/pollbook-backend';
 import { Column, Row, FieldName } from './layout';
 import { PollWorkerNavScreen } from './nav_screen';
-import {
-  AddressInputGroup,
-  voterRegistrationRequestToAddressChangeRequest,
-} from './address_input_group';
+import { AddressInputGroup } from './address_input_group';
 import {
   RequiredExpandableInput,
   TextField,

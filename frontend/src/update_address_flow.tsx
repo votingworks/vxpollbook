@@ -17,10 +17,7 @@ import { useState } from 'react';
 import { Column, Row } from './layout';
 import { NoNavScreen } from './nav_screen';
 import { VoterName } from './shared_components';
-import {
-  AddressInputGroup,
-  voterToAddressChangeRequest,
-} from './address_input_group';
+import { AddressInputGroup } from './address_input_group';
 import { changeVoterAddress } from './api';
 
 type UpdateAddressFlowState =
@@ -28,17 +25,30 @@ type UpdateAddressFlowState =
   | { step: 'printing' }
   | { step: 'success' };
 
+function createBlankAddress(): VoterAddressChangeRequest {
+  return {
+    streetNumber: '',
+    streetName: '',
+    streetSuffix: '',
+    apartmentUnitNumber: '',
+    houseFractionNumber: '',
+    addressLine2: '',
+    addressLine3: '',
+    city: '',
+    state: 'NH',
+    zipCode: '',
+  };
+}
+
 function UpdateAddressScreen({
-  voter,
   onConfirm,
   onCancel,
 }: {
-  voter: Voter;
   onConfirm: (address: VoterAddressChangeRequest) => void;
   onCancel: () => void;
 }): JSX.Element {
   const [address, setAddress] = useState<VoterAddressChangeRequest>(
-    voterToAddressChangeRequest(voter)
+    createBlankAddress()
   );
   return (
     <NoNavScreen>
@@ -54,8 +64,14 @@ function UpdateAddressScreen({
         <Button
           rightIcon="Next"
           variant="primary"
-          // TODO
-          // disabled={
+          disabled={
+            !(
+              address.streetNumber &&
+              address.streetName &&
+              address.city &&
+              address.zipCode
+            )
+          }
           onPress={() => onConfirm(address)}
           style={{ flex: 1 }}
         >
@@ -89,7 +105,6 @@ export function UpdateAddressFlow({
     case 'update':
       return (
         <UpdateAddressScreen
-          voter={voter}
           onConfirm={(addressChangeData) => {
             setFlowState({ step: 'printing' });
             changeVoterAddressMutation.mutate(

@@ -1,6 +1,6 @@
 import * as grout from '@votingworks/grout';
 import express, { Application } from 'express';
-import { err, ok, Result } from '@votingworks/basics';
+import { err, ok, Result, sleep } from '@votingworks/basics';
 import { DEFAULT_SYSTEM_SETTINGS, PrinterStatus } from '@votingworks/types';
 import { DippedSmartCardAuthMachineState } from '@votingworks/auth';
 import { renderToPdf } from '@votingworks/printing';
@@ -12,7 +12,6 @@ import {
   DeviceStatuses,
   Election,
   MachineInformation,
-  PollbookEvent,
   Voter,
   VoterIdentificationMethod,
   VoterSearchParams,
@@ -20,6 +19,8 @@ import {
   ValidStreetInfo,
   VoterRegistrationRequest,
   MachineConfig,
+  PollbookEvent,
+  VoterAddressChangeRequest,
 } from './types';
 import { rootDebug } from './debug';
 import { CheckInReceipt } from './check_in_receipt';
@@ -134,6 +135,10 @@ function buildApi(context: AppContext) {
       return store.searchVoters(searchParams);
     },
 
+    getVoter(input: { voterId: string }): Voter {
+      return store.getVoter(input.voterId);
+    },
+
     async checkInVoter(input: {
       voterId: string;
       identificationMethod: VoterIdentificationMethod;
@@ -161,12 +166,26 @@ function buildApi(context: AppContext) {
           },
         })
       ).unsafeUnwrap();
-      debug('Printing receipt for voter %s', voter.voterId);
+      debug('Printing check-in receipt for voter %s', voter.voterId);
       await printer.print({ data: receiptPdf });
     },
 
     undoVoterCheckIn(input: { voterId: string }): void {
       store.recordUndoVoterCheckIn(input.voterId);
+    },
+
+    async changeVoterAddress(input: {
+      voterId: string;
+      addressChangeData: VoterAddressChangeRequest;
+    }): Promise<Voter> {
+      const voter = store.changeVoterAddress(
+        input.voterId,
+        input.addressChangeData
+      );
+      debug('Printing address change receipt for voter %s', voter.voterId);
+      await sleep(1000);
+      // TODO print receipt
+      return voter;
     },
 
     async registerVoter(input: {
@@ -192,7 +211,7 @@ function buildApi(context: AppContext) {
           },
         })
       ).unsafeUnwrap();
-      debug('Printing receipt for voter %s', voter.voterId);
+      debug('Printing registration receipt for voter %s', voter.voterId);
       await printer.print({ data: receiptPdf });
       return voter;
     },

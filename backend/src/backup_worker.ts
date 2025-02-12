@@ -86,11 +86,12 @@ async function exportBackupVoterChecklist(
   console.log('Exporting backup voter checklist');
   console.time('Exported backup voter checklist');
   const voterGroups = workspace.store.groupVotersAlphabeticallyByLastName();
+  const totalCheckIns = workspace.store.getCheckInCount();
   const groupPdfs = iter(voterGroups)
     .async()
     .map(async (voterGroup) => {
       const headerElement = React.createElement(VoterChecklistHeader, {
-        totalCheckIns: workspace.store.getCheckInCount(),
+        totalCheckIns,
         voterGroup,
       });
       const tableElement = React.createElement(VoterChecklist, {
@@ -111,6 +112,9 @@ async function exportBackupVoterChecklist(
       ).unsafeUnwrap();
     });
 
+  // For now, split into two PDFs so users can parallelize printing. In the
+  // future we may want to decide this dynamically based on the number of
+  // voters.
   const numPdfChunks = 2;
   const chunkLength = Math.ceil(voterGroups.length / numPdfChunks);
   for await (const [i, pdfs] of groupPdfs.chunks(chunkLength).enumerate()) {

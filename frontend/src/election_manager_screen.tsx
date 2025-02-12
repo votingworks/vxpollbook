@@ -1,6 +1,5 @@
 import {
   Button,
-  Caption,
   Card,
   colorThemes,
   Font,

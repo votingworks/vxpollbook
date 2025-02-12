@@ -21,7 +21,6 @@ import type {
   VoterSearchParams,
 } from '@votingworks/pollbook-backend';
 import styled from 'styled-components';
-import { Link } from 'react-router-dom';
 import { format } from '@votingworks/utils';
 import { throwIllegalValue } from '@votingworks/basics';
 import { Column, Form, Row, InputGroup } from './layout';

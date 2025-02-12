@@ -1,3 +1,5 @@
+#!/bin/bash
+export VX_MACHINE_ID=$(cat /vx/config/machine-id)
 cd /home/vx/code/vxpollbook/frontend
 pnpm start &
 sleep 2

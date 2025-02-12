@@ -1,0 +1,7 @@
+[Desktop Entry]
+Version=1.0
+Name=VxPollbook
+Icon=runprogram.png
+Exec=gnome-terminal -- /bin/sh -c 'env PATH=$PATH:/sbin env WORKSPACE=/vx/data/pollbook /vx/scripts/run-vxpollbook.sh'
+Terminal=false
+Type=Application

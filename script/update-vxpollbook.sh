@@ -29,11 +29,13 @@ if [ ! -f .env.local ]; then
   cp .env .env.local
 fi
 cp .env.local /tmp/.env.local
+git restore .
 git clean -xfd > /dev/null
 git checkout main
 git pull
 cp /tmp/.env.local .env.local
 pnpm install
+cd frontend && pnpm type-check
 
 # Turn off the network and renable the mesh network.
 sudo systemctl stop NetworkManager

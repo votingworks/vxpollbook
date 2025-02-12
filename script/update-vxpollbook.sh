@@ -1,5 +1,7 @@
 #!/bin/bash
 
+echo "Restarting network and checking for connection"
+
 # Turn on the network
 sudo systemctl start NetworkManager
 

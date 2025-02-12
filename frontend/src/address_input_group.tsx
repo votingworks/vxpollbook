@@ -1,8 +1,6 @@
 import type {
   ValidStreetInfo,
-  Voter,
   VoterAddressChangeRequest,
-  VoterRegistrationRequest,
 } from '@votingworks/pollbook-backend';
 import { SearchSelect } from '@votingworks/ui';
 import React, { useMemo } from 'react';
@@ -17,57 +15,12 @@ import {
 } from './shared_components';
 import { getValidStreetInfo } from './api';
 
-export type VoterAddress = Pick<
-  Voter,
-  | 'streetNumber'
-  | 'streetName'
-  | 'apartmentUnitNumber'
-  | 'addressLine2'
-  | 'postalCityTown'
-  | 'postalZip5'
-  | 'zip4'
->;
-
-export function voterRegistrationRequestToAddressChangeRequest(
-  voter: VoterRegistrationRequest
-): VoterAddressChangeRequest {
-  return {
-    streetNumber: voter.streetNumber,
-    streetName: voter.streetName,
-    houseFractionNumber: voter.houseFractionNumber,
-    streetSuffix: voter.streetSuffix,
-    apartmentUnitNumber: voter.apartmentUnitNumber,
-    addressLine2: voter.addressLine2,
-    addressLine3: voter.addressLine3,
-    city: voter.city,
-    state: voter.state,
-    zipCode: voter.zipCode,
-  };
-}
-
-export function voterToAddressChangeRequest(
-  voter: Voter
-): VoterAddressChangeRequest {
-  return {
-    streetNumber: voter.streetNumber,
-    streetName: voter.streetName,
-    houseFractionNumber: voter.houseFractionNumber,
-    streetSuffix: voter.addressSuffix,
-    apartmentUnitNumber: voter.apartmentUnitNumber,
-    addressLine2: voter.addressLine2,
-    addressLine3: voter.addressLine3,
-    city: voter.postalCityTown,
-    state: voter.state,
-    zipCode: voter.postalZip5 + (voter.zip4 ? `-${voter.zip4}` : ''),
-  };
-}
-
 function findCityAndZipCodeFromStreetAddress(
   validStreetInfo: ValidStreetInfo[],
   address: VoterAddressChangeRequest
 ): { city: string; zipCode: string } {
   const streetInfosForStreetName = validStreetInfo.filter(
-    (info) => info.streetName === address.streetName
+    (info) => info.streetName.toLocaleUpperCase() === address.streetName
   );
   const streetNumberNumericPart = address.streetNumber.replace(/[^0-9]/g, '');
   const voterStreetNum = safeParseInt(streetNumberNumericPart).ok();
@@ -83,7 +36,7 @@ function findCityAndZipCodeFromStreetAddress(
 
   // Populate city and zipCode from the first matching street info
   return {
-    city: streetInfo?.postalCity || '',
+    city: streetInfo?.postalCity.toLocaleUpperCase() || '',
     zipCode: streetInfo?.zip5.padStart(5, '0') || '',
   };
 }
@@ -101,7 +54,11 @@ export function AddressInputGroup({
     () =>
       validStreetInfoQuery.data
         ? Array.from(
-            new Set(validStreetInfoQuery.data.map((info) => info.streetName))
+            new Set(
+              validStreetInfoQuery.data.map((info) =>
+                info.streetName.toLocaleUpperCase()
+              )
+            )
           )
         : [],
     [validStreetInfoQuery.data]
@@ -129,7 +86,10 @@ export function AddressInputGroup({
             value={address.streetNumber}
             style={{ width: '8rem' }}
             onChange={(e) =>
-              handleChange({ ...address, streetNumber: e.target.value })
+              handleChange({
+                ...address,
+                streetNumber: e.target.value.toLocaleUpperCase(),
+              })
             }
           />
         </RequiredStaticInput>
@@ -140,7 +100,10 @@ export function AddressInputGroup({
             value={address.streetName || undefined}
             style={{ flex: 1 }}
             onChange={(value) =>
-              handleChange({ ...address, streetName: value || '' })
+              handleChange({
+                ...address,
+                streetName: value || '',
+              })
             }
             options={dedupedStreetNames.map((name) => ({
               value: name,
@@ -154,7 +117,10 @@ export function AddressInputGroup({
             value={address.apartmentUnitNumber}
             style={{ width: '8rem' }}
             onChange={(e) =>
-              handleChange({ ...address, apartmentUnitNumber: e.target.value })
+              handleChange({
+                ...address,
+                apartmentUnitNumber: e.target.value.toLocaleUpperCase(),
+              })
             }
           />
         </StaticInput>
@@ -165,7 +131,10 @@ export function AddressInputGroup({
           <TextField
             value={address.addressLine2}
             onChange={(e) =>
-              handleChange({ ...address, addressLine2: e.target.value })
+              handleChange({
+                ...address,
+                addressLine2: e.target.value.toLocaleUpperCase(),
+              })
             }
           />
         </ExpandableInput>

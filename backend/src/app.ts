@@ -27,6 +27,7 @@ import { CheckInReceipt } from './check_in_receipt';
 import { pollUsbDriveForPollbookPackage } from './pollbook_package';
 import { RegistrationReceipt } from './registration_receipt';
 import { resetNetworkSetup, setupMachineNetworking } from './networking';
+import { AddressChangeReceipt } from './address_change_receipt';
 
 const debug = rootDebug;
 
@@ -182,9 +183,27 @@ function buildApi(context: AppContext) {
         input.voterId,
         input.addressChangeData
       );
+      const receipt = React.createElement(AddressChangeReceipt, {
+        voter,
+        machineId,
+      });
+      const receiptPdf = (
+        await renderToPdf({
+          document: receipt,
+          paperDimensions: {
+            width: 2.83,
+            height: 7,
+          },
+          marginDimensions: {
+            top: 0.1,
+            right: 0.1,
+            bottom: 0.1,
+            left: 0.1,
+          },
+        })
+      ).unsafeUnwrap();
       debug('Printing address change receipt for voter %s', voter.voterId);
-      await sleep(1000);
-      // TODO print receipt
+      await printer.print({ data: receiptPdf });
       return voter;
     },
 

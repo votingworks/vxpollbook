@@ -605,7 +605,8 @@ export class Store {
     voterRegistration: VoterAddressChangeRequest
   ): ValidStreetInfo | undefined {
     const validStreetNames = this.getStreetInfo().filter(
-      (info) => info.streetName === voterRegistration.streetName
+      (info) =>
+        info.streetName.toLocaleUpperCase() === voterRegistration.streetName
     );
     const voterStreetNumberResult = safeParseInt(
       voterRegistration.streetNumber

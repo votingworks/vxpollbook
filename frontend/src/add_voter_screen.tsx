@@ -67,16 +67,8 @@ export function AddVoterScreen({
   function handleSubmit() {
     onSubmit({
       ...voter,
-      firstName: voter.firstName.toUpperCase(),
-      lastName: voter.lastName.toUpperCase(),
-      middleName: voter.middleName.toUpperCase(),
-      suffix: voter.suffix.toUpperCase(),
-      city: voter.city.toUpperCase(),
-      zipCode: voter.zipCode,
       streetNumber: voter.streetNumber.replace(/[^0-9]/g, ''),
-      streetSuffix: voter.streetNumber.replace(/[0-9]/g, '').toUpperCase(),
-      addressLine2: voter.addressLine2.toUpperCase(),
-      apartmentUnitNumber: voter.apartmentUnitNumber.toUpperCase(),
+      streetSuffix: voter.streetNumber.replace(/[0-9]/g, ''),
     });
   }
 
@@ -94,7 +86,10 @@ export function AddVoterScreen({
               <TextField
                 value={voter.lastName}
                 onChange={(e) =>
-                  setVoter({ ...voter, lastName: e.target.value })
+                  setVoter({
+                    ...voter,
+                    lastName: e.target.value.toLocaleUpperCase(),
+                  })
                 }
               />
             </RequiredExpandableInput>
@@ -103,7 +98,10 @@ export function AddVoterScreen({
               <TextField
                 value={voter.firstName}
                 onChange={(e) =>
-                  setVoter({ ...voter, firstName: e.target.value })
+                  setVoter({
+                    ...voter,
+                    firstName: e.target.value.toLocaleUpperCase(),
+                  })
                 }
               />
             </RequiredExpandableInput>
@@ -112,7 +110,10 @@ export function AddVoterScreen({
               <TextField
                 value={voter.middleName}
                 onChange={(e) =>
-                  setVoter({ ...voter, middleName: e.target.value })
+                  setVoter({
+                    ...voter,
+                    middleName: e.target.value.toLocaleUpperCase(),
+                  })
                 }
               />
             </ExpandableInput>
@@ -121,12 +122,17 @@ export function AddVoterScreen({
               <TextField
                 value={voter.suffix}
                 style={{ width: '5rem' }}
-                onChange={(e) => setVoter({ ...voter, suffix: e.target.value })}
+                onChange={(e) =>
+                  setVoter({
+                    ...voter,
+                    suffix: e.target.value.toLocaleUpperCase(),
+                  })
+                }
               />
             </StaticInput>
           </Row>
           <AddressInputGroup
-            address={voterRegistrationRequestToAddressChangeRequest(voter)}
+            address={voter}
             onChange={(address) => setVoter({ ...voter, ...address })}
           />
           <Row style={{ gap: '1rem' }}>

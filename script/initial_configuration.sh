@@ -1,5 +1,9 @@
 #!/bin/bash
 
+sudo cp run-vxpollbook.sh /vx/scripts/.
+sudo cp run-vxpollbook.desktop /usr/share/applications/.
+gsettings set org.gnome.shell favorite-apps "['run-vxpollbook.desktop', 'update-vxdev.desktop', 'org.gnome.Screenshot.desktop', 'firefox-esr.desktop', 'org.gnome.Nautilus.desktop', 'org.gnome.Terminal.desktop']"
+
 sudo apt install avahi-daemon avahi-utils avahi-autoipd
 sudo systemctl disable NetworkManager
 sudo systemctl disable firewalld

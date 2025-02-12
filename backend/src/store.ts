@@ -756,6 +756,9 @@ export class Store {
     const checkInEventRows = this.client.all(
       `SELECT * FROM event_log WHERE event_type = '${EventType.VoterCheckIn}' ORDER BY physical_time, logical_counter, machine_id`
     ) as EventDbRow[];
+    if (checkInEventRows.length === 0) {
+      return [];
+    }
     const events = convertDbRowsToPollbookEvents(checkInEventRows);
     const checkInEvents = events.filter(
       (event): event is VoterCheckInEvent =>
@@ -770,6 +773,7 @@ export class Store {
 
     // Generate intervals of start and end times from the start of the hour of the first event until the present time.
     const now = new Date();
+
     const startOfHour = new Date(
       orderedByEventMachineTime[0].checkInData.timestamp
     );

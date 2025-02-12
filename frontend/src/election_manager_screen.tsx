@@ -39,7 +39,7 @@ import {
   unconfigure,
   undoVoterCheckIn,
 } from './api';
-import { Column, Row } from './layout';
+import { Column, FieldName, Row } from './layout';
 import { VoterSearch } from './voter_search_screen';
 
 ChartJS.register(TimeScale, LinearScale, BarElement, Title, Tooltip, Legend);
@@ -124,6 +124,9 @@ export function ThroughputChart(): JSX.Element {
     return <Loading />;
   }
   const throughputData = getThroughputQuery.data;
+  if (throughputData.length === 0) {
+    return <P>Throughput will be visible after check-ins have begun.</P>;
+  }
 
   // Change the interval based on SegmentedButton selection
   function handleIntervalChange(selectedId: string) {
@@ -131,63 +134,78 @@ export function ThroughputChart(): JSX.Element {
   }
 
   return (
-    <Column style={{ gap: '1rem' }}>
-      <SegmentedButton
-        label="Interval"
-        selectedOptionId={String(intervalMin)}
-        options={[
-          { id: '15', label: '15m' },
-          { id: '30', label: '30m' },
-          { id: '60', label: '1h' },
-        ]}
-        onChange={handleIntervalChange}
-      />
-      <Bar
-        data={{
-          labels: throughputData.map((stat) => new Date(stat.startTime)),
-          datasets: [
-            {
-              label: 'Check-Ins',
-              data: throughputData.map((stat) => stat.checkIns),
-              backgroundColor: colorThemes.desktop.inversePrimary,
-            },
-          ],
-        }}
-        plugins={[ChartDataLabels]}
-        options={{
-          layout: {
-            padding: { top: 20 },
-          },
-          plugins: {
-            legend: {
-              display: false,
-            },
-            datalabels: {
-              display: true,
-              font: { size: 16 },
-              anchor: 'end',
-              align: 'top',
-            },
-          },
-          scales: {
-            x: {
-              type: 'time',
-              ticks: {
-                source: 'data',
+    <Column style={{ gap: '1rem', flex: 1 }}>
+      <Row style={{ gap: '1rem', justifyContent: 'space-between', flex: 1 }}>
+        <H2>Voter Throughput</H2>
+        <Column>
+          <SegmentedButton
+            label="Interval"
+            hideLabel
+            selectedOptionId={String(intervalMin)}
+            options={[
+              { id: '15', label: '15m' },
+              { id: '30', label: '30m' },
+              { id: '60', label: '1h' },
+            ]}
+            onChange={handleIntervalChange}
+          />
+        </Column>
+      </Row>
+      <Column style={{ height: '320px', width: '1400px' }}>
+        <Row style={{ flex: 1 }}>
+          <Font style={{ fontSize: '0.75rem' }}>
+            Number of check-ins occurring in the time interval across all
+            machines.
+          </Font>
+        </Row>
+        <Bar
+          data={{
+            labels: throughputData.map((stat) => new Date(stat.startTime)),
+            datasets: [
+              {
+                label: 'Check-Ins',
+                data: throughputData.map((stat) => stat.checkIns),
+                backgroundColor: colorThemes.desktop.inversePrimary,
               },
-              title: {
+            ],
+          }}
+          plugins={[ChartDataLabels]}
+          options={{
+            maintainAspectRatio: false,
+            layout: {
+              padding: { top: 20 },
+            },
+            plugins: {
+              legend: {
                 display: false,
               },
-            },
-            y: {
-              title: {
+              datalabels: {
                 display: true,
-                text: 'Check-Ins',
+                font: { size: 16 },
+                anchor: 'end',
+                align: 'top',
               },
             },
-          },
-        }}
-      />
+            scales: {
+              x: {
+                type: 'time',
+                ticks: {
+                  source: 'data',
+                },
+                title: {
+                  display: false,
+                },
+              },
+              y: {
+                title: {
+                  display: true,
+                  text: 'Check-Ins',
+                },
+              },
+            },
+          }}
+        />
+      </Column>
     </Column>
   );
 }
@@ -211,20 +229,45 @@ export function StatisticsScreen(): JSX.Element {
     <ElectionManagerNavScreen title="Statistics">
       <MainContent>
         <Column style={{ gap: '1rem' }}>
-          {/* Summary Section */}
-          <Card>
-            <H2>Summary</H2>
-            <P>Total Number of Voters: {totalVoters}</P>
-            <P>Voters Checked In: {totalCheckIns}</P>
-            <P>Precinct Check-Ins: {precinctCheckIns}</P>
-            <P>Absentee Check-Ins: {totalAbsenteeCheckIns}</P>
-            <P>% Participation: {participationPercent}%</P>
-            <P>New Registrations: {totalNewRegistrations}</P>
-          </Card>
-          <Card>
-            <H2>Throughput</H2>
-            <ThroughputChart />
-          </Card>
+          <Row style={{ gap: '1rem' }}>
+            <Column style={{ gap: '1rem', flex: 1 }}>
+              <Card>
+                <H2>Check-In Data</H2>
+                <P>
+                  Precinct Check-Ins:<b> {precinctCheckIns}</b>
+                </P>
+                <P>
+                  Absentee Check-Ins: <b> {totalAbsenteeCheckIns}</b>
+                </P>
+                <P>
+                  Total: <b>{totalCheckIns}</b>
+                </P>
+              </Card>
+            </Column>
+            <Column style={{ gap: '1rem', flex: 1 }}>
+              <Card>
+                <H2>Registration Data</H2>
+                <P>
+                  Imported Voter Roll:{' '}
+                  <b>{totalVoters - totalNewRegistrations} Voters</b>
+                </P>
+                <P>
+                  New Registrations: <b>{totalNewRegistrations}</b>
+                </P>
+                <P>
+                  Participation:{' '}
+                  <b>
+                    {participationPercent}% ({totalCheckIns}/{totalVoters})
+                  </b>
+                </P>
+              </Card>
+            </Column>
+          </Row>
+          <Row>
+            <Card>
+              <ThroughputChart />
+            </Card>
+          </Row>
         </Column>
       </MainContent>
     </ElectionManagerNavScreen>

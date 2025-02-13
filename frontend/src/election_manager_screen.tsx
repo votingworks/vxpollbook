@@ -1,5 +1,6 @@
 import {
   Button,
+  Caption,
   Card,
   colorThemes,
   Font,
@@ -131,6 +132,9 @@ const StyledTitledCard = styled(Card)`
   > div {
     padding: 0;
   }
+  h4 {
+    margin: 0;
+  }
 `;
 
 function TitledCard({
@@ -166,9 +170,6 @@ export function ThroughputChart(): JSX.Element {
     return <Loading />;
   }
   const throughputData = getThroughputQuery.data;
-  if (throughputData.length === 0) {
-    return <P>Throughput will be visible after check-ins have begun.</P>;
-  }
 
   return (
     <TitledCard
@@ -197,7 +198,7 @@ export function ThroughputChart(): JSX.Element {
         </Row>
       }
     >
-      <div style={{ height: '13.5rem' }}>
+      <div style={{ height: '17rem' }}>
         <Bar
           data={{
             labels: throughputData.map((stat) => new Date(stat.startTime)),
@@ -258,11 +259,12 @@ function Metric({
   value: number | React.ReactNode;
 }): JSX.Element {
   return (
-    <LabelledText label={label}>
+    <Column>
+      <div style={{ fontSize: '0.85rem' }}>{label}</div>
       <Font weight="bold" style={{ fontSize: '1.5rem' }}>
         {typeof value === 'number' ? value.toLocaleString() : value}
       </Font>
-    </LabelledText>
+    </Column>
   );
 }
 

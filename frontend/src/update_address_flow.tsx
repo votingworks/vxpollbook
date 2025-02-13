@@ -12,6 +12,7 @@ import {
   ButtonBar,
   Button,
   MainContent,
+  Callout,
 } from '@votingworks/ui';
 import { useState } from 'react';
 import { Column, Row } from './layout';
@@ -50,6 +51,8 @@ function UpdateAddressScreen({
   const [address, setAddress] = useState<VoterAddressChangeRequest>(
     createBlankAddress()
   );
+  const isAddressValid = !(address.city === '' || address.zipCode === '');
+
   return (
     <NoNavScreen>
       <MainHeader>
@@ -58,6 +61,14 @@ function UpdateAddressScreen({
       <MainContent>
         <Column style={{ gap: '1rem' }}>
           <AddressInputGroup address={address} onChange={setAddress} />
+          {address.streetNumber.trim() !== '' &&
+            address.streetName !== '' &&
+            !isAddressValid && (
+              <Callout icon="Danger" color="danger">
+                Invalid address. Make sure the street number and name match a
+                valid address for this jurisdiction.
+              </Callout>
+            )}
         </Column>
       </MainContent>
       <ButtonBar>

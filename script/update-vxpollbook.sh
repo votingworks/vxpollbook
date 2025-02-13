@@ -30,12 +30,20 @@ cd /home/vx/code/vxpollbook
 if [ ! -f .env.local ]; then
   cp .env .env.local
 fi
+PRESERVE_POLLBOOK=0
+if [ -f libs/usb-drive/dev-workspace/mock-usb-data/pollbook-package.zip ]; then
+  cp libs/usb-drive/dev-workspace/mock-usb-data/pollbook-package.zip /tmp/pollbook-package.zip
+  PRESERVE_POLLBOOK=1
+fi
 cp .env.local /tmp/.env.local
 git restore .
 git clean -xfd > /dev/null
 git checkout main
 git pull
 cp /tmp/.env.local .env.local
+if [ $PRESERVE_POLLBOOK -eq 1 ]; then
+  cp /tmp/pollbook-package.zip libs/usb-drive/dev-workspace/mock-usb-data/pollbook-package.zip
+fi
 pnpm install
 cd frontend && pnpm type-check
 

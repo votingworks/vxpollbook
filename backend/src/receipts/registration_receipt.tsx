@@ -1,7 +1,7 @@
 import { assert, throwIllegalValue } from '@votingworks/basics';
 import { format } from '@votingworks/utils';
 import { Icons } from '@votingworks/ui';
-import { Voter } from './types';
+import { Voter } from '../types';
 import { VoterAddress, StyledReceipt } from './receipt_helpers';
 
 function formatPartyName(party: 'DEM' | 'REP' | 'UND'): string {

@@ -2,7 +2,7 @@ import { format } from '@votingworks/utils';
 import { assert } from '@votingworks/basics';
 import { Icons } from '@votingworks/ui';
 import { StyledReceipt, VoterAddress } from './receipt_helpers';
-import { Voter, VoterAddressChange } from './types';
+import { Voter, VoterAddressChange } from '../types';
 
 function AddressChange({
   address,

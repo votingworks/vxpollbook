@@ -1,7 +1,7 @@
 import { assert, throwIllegalValue } from '@votingworks/basics';
 import { format } from '@votingworks/utils';
 import { Icons } from '@votingworks/ui';
-import { Voter, VoterIdentificationMethod } from './types';
+import { Voter, VoterIdentificationMethod } from '../types';
 import { VoterAddress, StyledReceipt } from './receipt_helpers';
 
 function prettyIdentificationMethod(

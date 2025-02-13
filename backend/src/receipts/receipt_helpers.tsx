@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import { Voter } from './types';
+import { Voter } from '../types';
 
 export const StyledReceipt = styled.div``;
 

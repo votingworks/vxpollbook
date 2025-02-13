@@ -25,11 +25,13 @@ import {
   ThroughputStat,
 } from './types';
 import { rootDebug } from './debug';
-import { CheckInReceipt } from './check_in_receipt';
+import {
+  CheckInReceipt,
+  RegistrationReceipt,
+  AddressChangeReceipt,
+} from './receipts';
 import { pollUsbDriveForPollbookPackage } from './pollbook_package';
-import { RegistrationReceipt } from './registration_receipt';
 import { resetNetworkSetup, setupMachineNetworking } from './networking';
-import { AddressChangeReceipt } from './address_change_receipt';
 
 const debug = rootDebug;
 

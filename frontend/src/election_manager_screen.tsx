@@ -1,13 +1,11 @@
 import {
   Button,
-  Caption,
   Card,
   colorThemes,
   Font,
   H2,
   H4,
   Icons,
-  LabelledText,
   Loading,
   MainContent,
   P,
@@ -45,6 +43,7 @@ import {
 } from './api';
 import { Column, Row } from './layout';
 import { CheckInDetails, VoterSearch } from './voter_search_screen';
+import { TitledCard } from './shared_components';
 
 ChartJS.register(TimeScale, LinearScale, BarElement, Title, Tooltip, Legend);
 ChartJS.defaults.font.size = 16;
@@ -119,38 +118,6 @@ export function VotersScreen(): JSX.Element {
         />
       </MainContent>
     </ElectionManagerNavScreen>
-  );
-}
-
-const TitleBar = styled.div`
-  padding: 0.5rem 1rem;
-  background-color: ${(p) => p.theme.colors.containerLow};
-`;
-
-const StyledTitledCard = styled(Card)`
-  flex: 1;
-  > div {
-    padding: 0;
-  }
-  h4 {
-    margin: 0;
-  }
-`;
-
-function TitledCard({
-  title,
-  children,
-}: {
-  title: string | React.ReactNode;
-  children: React.ReactNode;
-}): JSX.Element {
-  return (
-    <StyledTitledCard>
-      <TitleBar>
-        {typeof title === 'string' ? <H4>{title}</H4> : title}
-      </TitleBar>
-      <div style={{ padding: '1rem' }}>{children}</div>
-    </StyledTitledCard>
   );
 }
 

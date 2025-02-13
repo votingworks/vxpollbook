@@ -42,6 +42,7 @@ git checkout main
 git pull
 cp /tmp/.env.local .env.local
 if [ $PRESERVE_POLLBOOK -eq 1 ]; then
+  mkdir -p libs/usb-drive/dev-workspace/mock-usb-data
   cp /tmp/pollbook-package.zip libs/usb-drive/dev-workspace/mock-usb-data/pollbook-package.zip
 fi
 pnpm install

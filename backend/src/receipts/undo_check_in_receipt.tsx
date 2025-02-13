@@ -1,4 +1,4 @@
-import { assert, throwIllegalValue } from '@votingworks/basics';
+import { assert } from '@votingworks/basics';
 import { format } from '@votingworks/utils';
 import { Icons } from '@votingworks/ui';
 import { Voter } from '../types';
@@ -9,15 +9,15 @@ import {
   PartyName,
 } from './receipt_helpers';
 
-export function RegistrationReceipt({
+export function UndoCheckInReceipt({
   voter,
   machineId,
 }: {
   voter: Voter;
   machineId: string;
 }): JSX.Element {
-  const { registrationEvent } = voter;
-  assert(registrationEvent);
+  const { checkIn } = voter;
+  assert(checkIn);
 
   return (
     <StyledReceipt>
@@ -30,17 +30,13 @@ export function RegistrationReceipt({
       >
         <div>
           <div>
-            <strong>Voter Added</strong>
+            <strong>Undo Check-In</strong>
           </div>
-          <div>
-            {format.localeNumericDateAndTime(
-              new Date(registrationEvent.timestamp)
-            )}
-          </div>
+          <div>{format.localeNumericDateAndTime(new Date())}</div>
           <div>Pollbook: {machineId}</div>
         </div>
 
-        <Icons.Add style={{ fontSize: '3rem' }} />
+        <Icons.Delete style={{ fontSize: '3rem' }} />
       </div>
 
       <br />
@@ -55,6 +51,7 @@ export function RegistrationReceipt({
         <PartyName party={voter.party} />
       </div>
       <VoterAddress voter={voter} />
+      <div>Voter ID: {voter.voterId}</div>
     </StyledReceipt>
   );
 }

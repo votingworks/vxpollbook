@@ -62,9 +62,9 @@ import {
   faPrint,
   faRotate,
   faEnvelope,
+  faCircleXmark,
 } from '@fortawesome/free-solid-svg-icons';
 import {
-  faXmarkCircle,
   faPauseCircle,
   faSquare,
   faCircle,
@@ -263,7 +263,7 @@ export const Icons = {
   },
 
   Delete(props) {
-    return <FaIcon {...props} type={faXmarkCircle} />;
+    return <FaIcon {...props} type={faCircleXmark} />;
   },
 
   Disabled(props) {

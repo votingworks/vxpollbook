@@ -149,12 +149,11 @@ function buildApi(context: AppContext) {
       voterId: string;
       identificationMethod: VoterIdentificationMethod;
     }): Promise<void> {
-      const { voter, count } = store.recordVoterCheckIn(input);
+      const { voter } = store.recordVoterCheckIn(input);
       debug('Checked in voter %s', voter.voterId);
 
       const receipt = React.createElement(CheckInReceipt, {
         voter,
-        count,
         machineId,
       });
       debug('Printing check-in receipt for voter %s', voter.voterId);

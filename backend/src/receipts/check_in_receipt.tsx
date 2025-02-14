@@ -12,11 +12,9 @@ import {
 
 export function CheckInReceipt({
   voter,
-  count,
   machineId,
 }: {
   voter: Voter;
-  count: number;
   machineId: string;
 }): JSX.Element {
   const { checkIn } = voter;
@@ -33,7 +31,7 @@ export function CheckInReceipt({
       >
         <div>
           <div>
-            <strong>Check-In Number: {count}</strong>
+            <strong>Check-In #{checkIn.checkInNumber}</strong>
           </div>
           {checkIn.isAbsentee && <div>Absentee</div>}
           <div>

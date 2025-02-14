@@ -31,7 +31,7 @@ export function UndoCheckInReceipt({
       >
         <div>
           <div>
-            <strong>Undo Check-In</strong>
+            <strong>Undo Check-In #{checkIn.checkInNumber}</strong>
           </div>
           <div>{format.localeNumericDateAndTime(new Date())}</div>
           <div>Pollbook: {machineId}</div>
@@ -57,7 +57,7 @@ export function UndoCheckInReceipt({
       <br />
 
       <div>
-        <strong>Check-In Details</strong>
+        <strong>Check-In #{checkIn.checkInNumber} Details</strong>
       </div>
       <div>{format.localeNumericDateAndTime(new Date(checkIn.timestamp))}</div>
       <div>Pollbook: {checkIn.machineId}</div>

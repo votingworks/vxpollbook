@@ -1,11 +1,69 @@
-import { MainContent, Button, Font, Icons } from '@votingworks/ui';
+import { MainContent, Button, Font, Icons, Modal, P } from '@votingworks/ui';
+import React, { useState } from 'react';
+import type { Voter } from '@votingworks/pollbook-backend';
 import { undoVoterCheckIn } from './api';
 import { Column, Row } from './layout';
 import { ElectionManagerNavScreen } from './nav_screen';
 import { VoterSearch, CheckInDetails } from './voter_search_screen';
+import { VoterName } from './shared_components';
+
+function ConfirmUndoCheckInModal({
+  voter,
+  onClose,
+}: {
+  voter: Voter;
+  onClose: () => void;
+}): JSX.Element {
+  const undoVoterCheckInMutation = undoVoterCheckIn.useMutation();
+  // undoVoterCheckInMutation.mutate({ voterId: voter.voterId });
+  const [reason, setReason] = useState('');
+
+  return (
+    <Modal
+      title={
+        <React.Fragment>
+          Undo Check-In: <VoterName voter={voter} />
+        </React.Fragment>
+      }
+      content={
+        <Column>
+          <P>Record the reason for undoing the check-in:</P>
+          <textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            maxLength={250}
+          />
+        </Column>
+      }
+      actions={
+        <React.Fragment>
+          <Button
+            icon="Delete"
+            variant="danger"
+            onPress={() => {
+              undoVoterCheckInMutation.mutate(
+                {
+                  voterId: voter.voterId,
+                  reason,
+                },
+                { onSuccess: onClose }
+              );
+            }}
+            disabled={undoVoterCheckInMutation.isLoading}
+          >
+            Undo Check-In
+          </Button>
+          <Button onPress={onClose}>Cancel</Button>
+        </React.Fragment>
+      }
+      onOverlayClick={onClose}
+    />
+  );
+}
 
 export function VotersScreen(): JSX.Element {
-  const undoVoterCheckInMutation = undoVoterCheckIn.useMutation();
+  const [voterToUndo, setVoterToUndo] = useState<Voter>();
+
   return (
     <ElectionManagerNavScreen title="Voters">
       <MainContent>
@@ -18,9 +76,7 @@ export function VotersScreen(): JSX.Element {
                   style={{ flexWrap: 'nowrap' }}
                   icon="Delete"
                   color="danger"
-                  onPress={() => {
-                    undoVoterCheckInMutation.mutate({ voterId: voter.voterId });
-                  }}
+                  onPress={() => setVoterToUndo(voter)}
                 >
                   <Font noWrap>Undo Check-In</Font>
                 </Button>
@@ -35,6 +91,12 @@ export function VotersScreen(): JSX.Element {
           }
         />
       </MainContent>
+      {voterToUndo && (
+        <ConfirmUndoCheckInModal
+          voter={voterToUndo}
+          onClose={() => setVoterToUndo(undefined)}
+        />
+      )}
     </ElectionManagerNavScreen>
   );
 }

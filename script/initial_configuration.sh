@@ -34,18 +34,7 @@ if [ -n "$MACHINE_ID" ]; then
 fi
 
 echo "Setting up iptables firewall rules..."
-# Allow IPsec ESP traffic
-sudo iptables -A INPUT -i mesh0 -p esp -j ACCEPT
-# Allow IKE and NAT-T from IPsec subnet (UDP 500 & 4500)
-sudo iptables -A INPUT -i mesh0 -p udp --dport 500 -s 169.254.0.0/16 -j ACCEPT
-sudo iptables -A INPUT -i mesh0 -p udp --dport 4500 -s 169.254.0.0/16 -j ACCEPT
-# Allow mDNS for Avahi (UDP 5353)
-sudo iptables -A INPUT -i mesh0 -p udp --dport 5353 -j ACCEPT
-# Allow pollbook HTTP traffic on port 3002 from IPsec subnet
-sudo iptables -A INPUT -i mesh0 -p tcp --dport 3002 -s 169.254.0.0/16 -j ACCEPT
-sudo iptables -A INPUT -i mesh0 -p udp --dport 3002 -s 169.254.0.0/16 -j ACCEPT
-# Drop any other traffic coming in on mesh0
-sudo iptables -A INPUT -i mesh0 -j DROP
+sudo bash "$SCRIPT_DIR/configure-iptables.sh"
 
 sudo udevadm control --reload-rules
 sudo systemctl daemon-reload

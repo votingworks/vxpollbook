@@ -2,6 +2,10 @@
 
 echo "Restarting network and checking for connection"
 
+# --- Temporarily remove mesh0 DROP rule to allow internet access ---
+echo "Temporarily removing mesh0 firewall DROP rule..."
+sudo iptables -D INPUT -i mesh0 -j DROP || true
+
 # Turn on the network
 sudo systemctl start NetworkManager
 
@@ -48,8 +52,13 @@ fi
 pnpm install
 cd frontend && pnpm type-check
 
-# Turn off the network and renable the mesh network.
+# Turn off the network
 sudo systemctl stop NetworkManager
+
+# --- Reapply mesh0 firewall restrictions ---
+echo "Reapplying mesh0 firewall DROP rule..."
+sudo iptables -A INPUT -i mesh0 -j DROP
+
 sleep 1
 sudo systemctl start join-mesh-network
 

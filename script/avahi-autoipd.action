@@ -1,0 +1,17 @@
+#!/bin/bash
+
+case "$2" in
+    BIND)
+        # $3 is the newly assigned IP from Avahi
+        echo "Avahi-autoipd assigned IP: $3"
+        /usr/local/bin/update_ipsec.sh
+        ;;
+    UNBIND)
+        echo "Avahi-autoipd removed IP: $3"
+        # If you want to handle IP removal, you could do so here
+        ;;
+    RENEW)
+        echo "Avahi-autoipd renewed IP: $3"
+        /usr/local/bin/update_ipsec.sh
+        ;;
+esac

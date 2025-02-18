@@ -244,7 +244,7 @@ function generateVoter(id: number): Record<string, string> {
     'Address Line 2': '',
     'Address Line 3': '',
     'Postal City / Town': 'SOMEWHERE',
-    State: 'USA',
+    State: 'NH',
     'Postal Zip 5': (Math.floor(Math.random() * 90000) + 10000).toString(),
     'Zip +4': '',
     'Mailing Street Number': '',

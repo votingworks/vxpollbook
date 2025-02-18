@@ -23,7 +23,7 @@ sudo cp "$SCRIPT_DIR/avahi-autoipd.service" /etc/systemd/system/.
 sudo cp "$SCRIPT_DIR/99-mesh-network.rules" /etc/udev/rules.d/.
 
 # --- New prompts for IPSec passphrase and Machine ID ---
-read -p "Enter IPSec Secret Passphrase (leave empty to keep unchanged): " IPSecSecret
+read -s -p "Enter IPSec Secret Passphrase (leave empty to keep unchanged): " IPSecSecret
 if [ -n "$IPSecSecret" ]; then
     echo ": PSK \"$IPSecSecret\"" | sudo tee /etc/ipsec.secrets > /dev/null
 fi

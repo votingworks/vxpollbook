@@ -52,3 +52,11 @@ iptables -A OUTPUT -p igmp -j ACCEPT
 sudo iptables -A INPUT -m limit --limit 2/min -j LOG --log-prefix "IPTABLES:INPUT " --log-level 4
 sudo iptables -A OUTPUT -m limit --limit 2/min -j LOG --log-prefix "IPTABLES:OUTPUT " --log-level 4
 sudo iptables -A FORWARD -m limit --limit 2/min -j LOG --log-prefix "IPTABLES:FORWARD " --log-level 4
+
+
+# To persist the rules we must run 
+# sudo su
+# iptables-save > /etc/iptables/rules.v4
+# iptables-save > /etc/iptables/rules.v6
+# exit
+#

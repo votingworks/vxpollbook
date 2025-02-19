@@ -1,7 +1,7 @@
 #!/bin/bash
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-sudo apt install avahi-daemon avahi-utils avahi-autoipd strongswan -y
+sudo apt install avahi-daemon avahi-utils avahi-autoipd strongswan iptables-persistent -y
 
 sudo cp "$SCRIPT_DIR/mesh-ipsec.conf" /etc/ipsec.conf
 sudo cp "$SCRIPT_DIR/avahi-autoipd.action" /etc/avahi/avahi-autoipd.action

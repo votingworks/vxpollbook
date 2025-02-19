@@ -32,19 +32,19 @@ iptables -A INPUT -p udp --dport 5353 -j ACCEPT
 iptables -A OUTPUT -p udp --dport 5353 -j ACCEPT
 
 # ----- Enforce IPsec Protection for HTTP (port 3002) -----
-# Allow outgoing HTTP on port 3002 only if it is IPsec-protected
-iptables -A OUTPUT -p tcp --dport 3002 -m policy --pol ipsec --dir out -j ACCEPT
-# Allow incoming HTTP responses on port 3002 only if they are IPsec-protected
-iptables -A INPUT -p tcp --sport 3002 -m policy --pol ipsec --dir in -j ACCEPT
+# Allow new connections and established ones to TCP port 3002 on INPUT
+iptables -A INPUT -p tcp --dport 3002 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
+# Allow established responses from TCP port 3002 on OUTPUT
+iptables -A OUTPUT -p tcp --sport 3002 -m conntrack --ctstate ESTABLISHED -j ACCEPT
 
-# Allow traffic only if it is sourced/destined to the 169.254.0.0/16 subnet:
-iptables -A OUTPUT -p tcp --dport 3002 -d 169.254.0.0/16 -j ACCEPT
-iptables -A INPUT -p tcp --sport 3002 -s 169.254.0.0/16 -j ACCEPT
+# If your setup also initiates connections to port 3002 (bidirectional service), you might add:
+iptables -A OUTPUT -p tcp --dport 3002 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
+iptables -A INPUT -p tcp --sport 3002 -m conntrack --ctstate ESTABLISHED -j ACCEPT
 
-# Log anything else that is about to be dropped
-iptables -A INPUT -p tcp --sport 3002 -j LOG --log-prefix "DROP-HTTP-IN: "
-iptables -A OUTPUT -p tcp --dport 3002 -j LOG --log-prefix "DROP-HTTP-OUT: "
+# Allow basic pings for troubleshooting
+iptables -A INPUT -p icmp -j ACCEPT
+iptables -A OUTPUT -p icmp -j ACCEPT
 
-# Finally, drop any HTTP (port 3002) traffic that isn’t matched by the above rules
-iptables -A INPUT -p tcp --sport 3002 -j DROP
-iptables -A OUTPUT -p tcp --dport 3002 -j DROP
+sudo iptables -A INPUT -m limit --limit 2/min -j LOG --log-prefix "HAKUNA:INPUT " --log-level 4
+sudo iptables -A OUTPUT -m limit --limit 2/min -j LOG --log-prefix "HAKUNA:OUTPUT " --log-level 4
+sudo iptables -A FORWARD -m limit --limit 2/min -j LOG --log-prefix "HAKUNA:FORWARD " --log-level 4

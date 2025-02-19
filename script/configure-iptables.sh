@@ -30,16 +30,15 @@ iptables -A OUTPUT -p esp -j ACCEPT
 # ----- mDNS (Avahi) -----
 iptables -A INPUT -p udp --dport 5353 -j ACCEPT
 iptables -A OUTPUT -p udp --dport 5353 -j ACCEPT
-
 # ----- Enforce IPsec Protection for HTTP (port 3002) -----
-# Allow new connections and established ones to TCP port 3002 on INPUT
-iptables -A INPUT -p tcp --dport 3002 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
-# Allow established responses from TCP port 3002 on OUTPUT
-iptables -A OUTPUT -p tcp --sport 3002 -m conntrack --ctstate ESTABLISHED -j ACCEPT
+# Allow new connections and established ones to TCP port 3002 on INPUT from 169.254.0.0/16
+iptables -A INPUT -p tcp --dport 3002 -s 169.254.0.0/16 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
+# Allow established responses from TCP port 3002 on OUTPUT to 169.254.0.0/16
+iptables -A OUTPUT -p tcp --sport 3002 -d 169.254.0.0/16 -m conntrack --ctstate ESTABLISHED -j ACCEPT
 
 # If your setup also initiates connections to port 3002 (bidirectional service), you might add:
-iptables -A OUTPUT -p tcp --dport 3002 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
-iptables -A INPUT -p tcp --sport 3002 -m conntrack --ctstate ESTABLISHED -j ACCEPT
+iptables -A OUTPUT -p tcp --dport 3002 -d 169.254.0.0/16 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
+iptables -A INPUT -p tcp --sport 3002 -s 169.254.0.0/16 -m conntrack --ctstate ESTABLISHED -j ACCEPT
 
 # Allow basic pings for troubleshooting
 iptables -A INPUT -p icmp -j ACCEPT

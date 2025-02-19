@@ -45,6 +45,11 @@ iptables -A INPUT -p tcp --sport 3002 -m conntrack --ctstate ESTABLISHED -j ACCE
 iptables -A INPUT -p icmp -j ACCEPT
 iptables -A OUTPUT -p icmp -j ACCEPT
 
+# Allow IGMP for multicast traffic
+iptables -A INPUT -p igmp -j ACCEPT
+iptables -A OUTPUT -p igmp -j ACCEPT
+
+# Log anything that is still seen for debugging purposes.
 sudo iptables -A INPUT -m limit --limit 2/min -j LOG --log-prefix "HAKUNA:INPUT " --log-level 4
 sudo iptables -A OUTPUT -m limit --limit 2/min -j LOG --log-prefix "HAKUNA:OUTPUT " --log-level 4
 sudo iptables -A FORWARD -m limit --limit 2/min -j LOG --log-prefix "HAKUNA:FORWARD " --log-level 4

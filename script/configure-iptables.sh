@@ -49,6 +49,6 @@ iptables -A INPUT -p igmp -j ACCEPT
 iptables -A OUTPUT -p igmp -j ACCEPT
 
 # Log anything that is still seen for debugging purposes.
-sudo iptables -A INPUT -m limit --limit 2/min -j LOG --log-prefix "HAKUNA:INPUT " --log-level 4
-sudo iptables -A OUTPUT -m limit --limit 2/min -j LOG --log-prefix "HAKUNA:OUTPUT " --log-level 4
-sudo iptables -A FORWARD -m limit --limit 2/min -j LOG --log-prefix "HAKUNA:FORWARD " --log-level 4
+sudo iptables -A INPUT -m limit --limit 2/min -j LOG --log-prefix "IPTABLES:INPUT " --log-level 4
+sudo iptables -A OUTPUT -m limit --limit 2/min -j LOG --log-prefix "IPTABLES:OUTPUT " --log-level 4
+sudo iptables -A FORWARD -m limit --limit 2/min -j LOG --log-prefix "IPTABLES:FORWARD " --log-level 4

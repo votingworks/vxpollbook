@@ -33,9 +33,6 @@ if [ -n "$MACHINE_ID" ]; then
     echo "$MACHINE_ID" | sudo tee /vx/config/machine-id > /dev/null
 fi
 
-echo "Setting up iptables firewall rules..."
-sudo bash "$SCRIPT_DIR/configure-iptables.sh"
-
 sudo udevadm control --reload-rules
 sudo systemctl daemon-reload
 sudo systemctl enable join-mesh-network

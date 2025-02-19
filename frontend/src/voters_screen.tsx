@@ -1,6 +1,16 @@
-import { MainContent, Button, Font, Icons, Modal, P } from '@votingworks/ui';
+import {
+  MainContent,
+  Button,
+  Font,
+  Icons,
+  Modal,
+  P,
+  Card,
+  H3,
+} from '@votingworks/ui';
 import React, { useState } from 'react';
 import type { Voter } from '@votingworks/pollbook-backend';
+import { assertDefined } from '@votingworks/basics';
 import { undoVoterCheckIn } from './api';
 import { Column, Row } from './layout';
 import { ElectionManagerNavScreen } from './nav_screen';
@@ -20,19 +30,35 @@ function ConfirmUndoCheckInModal({
 
   return (
     <Modal
-      title={
-        <React.Fragment>
-          Undo Check-In: <VoterName voter={voter} />
-        </React.Fragment>
-      }
+      title={<React.Fragment>Undo Check-In</React.Fragment>}
       content={
-        <Column>
-          <P>Record the reason for undoing the check-in:</P>
-          <textarea
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            maxLength={250}
-          />
+        <Column style={{ gap: '1rem' }}>
+          <Card color="neutral">
+            <Row
+              style={{
+                gap: '0.5rem',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <div>
+                <H3>
+                  <VoterName voter={voter} />
+                </H3>
+              </div>
+              <CheckInDetails checkIn={assertDefined(voter.checkIn)} />
+            </Row>
+          </Card>
+          <Column>
+            <P>Record the reason for undoing the check-in:</P>
+            <textarea
+              // eslint-disable-next-line jsx-a11y/no-autofocus
+              autoFocus
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              maxLength={250}
+            />
+          </Column>
         </Column>
       }
       actions={

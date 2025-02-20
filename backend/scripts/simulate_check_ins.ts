@@ -75,7 +75,7 @@ async function checkInAllVotersOnCurrentMachine(
       }
 
       if (slow) {
-        const delay = Math.floor(Math.random() * 4000) + 4000; // Random delay between 4 and 8 seconds
+        const delay = Math.floor(Math.random() * 20000) + 20000; // Random delay between 4 and 8 seconds
         await new Promise((resolve) => {
           setTimeout(resolve, delay);
         });

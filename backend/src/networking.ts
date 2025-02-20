@@ -92,6 +92,7 @@ export async function setupMachineNetworking({
       const currentElection = workspace.store.getElection();
       debug('Polling network for new machines');
       const services = await AvahiService.discoverHttpServices();
+      perfDebug('Loaded http services', Date.now() - lastTime);
       const previouslyConnected = workspace.store.getPollbookServicesByName();
       // If there are any services that were previously connected that no longer show up in avahi
       // Mark them as shut down
@@ -117,6 +118,9 @@ export async function setupMachineNetworking({
         continue;
       }
       for (const { name, host, port } of services) {
+        perfDebug('On inner for loop ', Date.now() - lastTime);
+        perfDebug('Checking service %s', name);
+        perfDebug('Checking service %s', host);
         if (name !== currentNodeServiceName && !workspace.store.getIsOnline()) {
           // do not bother trying to ping other nodes if we are not online
           continue;
@@ -190,7 +194,7 @@ export async function setupMachineNetworking({
       }
       // Clean up stale machines
       workspace.store.cleanupStalePollbookServices();
-      perfDebug('Finished polling network loop');
+      perfDebug('Finished polling network loop: ', Date.now() - lastTime);
     }
   });
 }

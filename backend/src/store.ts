@@ -43,6 +43,7 @@ import {
   VoterNameChangeRequest,
   VoterNameChange,
   VoterNameChangeEvent,
+  VoterCheckIn,
 } from './types';
 import { MACHINE_DISCONNECTED_TIMEOUT, NETWORK_EVENT_LIMIT } from './globals';
 import { HlcTimestamp, HybridLogicalClock } from './hybrid_logical_clock';
@@ -479,6 +480,7 @@ export class Store {
     voterId: string;
     firstName: string;
     lastName: string;
+    checkIn?: VoterCheckIn;
   }> {
     const voters = this.getVoters();
     if (!voters) {
@@ -488,6 +490,7 @@ export class Store {
       firstName: v.firstName,
       lastName: v.lastName,
       voterId: v.voterId,
+      checkIn: v.checkIn,
     }));
   }
 

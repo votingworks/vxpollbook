@@ -23,6 +23,7 @@ import {
   SummaryStatistics,
   ThroughputStat,
   VoterNameChangeRequest,
+  VoterCheckIn,
 } from './types';
 import { rootDebug } from './debug';
 import {
@@ -258,6 +259,7 @@ function buildApi(context: AppContext) {
       voterId: string;
       firstName: string;
       lastName: string;
+      checkIn?: VoterCheckIn;
     }> {
       return store.getAllVoters();
     },

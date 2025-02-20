@@ -91,10 +91,11 @@ async function checkInAllVotersOnCurrentMachine(
 interface SimulateScriptArguments {
   limit?: number;
   range?: string;
+  checkResults: boolean;
   slow: boolean;
 }
 
-export async function main(argv: string[]): Promise<void> {
+export async function main(argv: string[]): Promise<number> {
   // Parse command line arguments using yargs
   const parser = yargs()
     .strict()
@@ -115,13 +116,47 @@ export async function main(argv: string[]): Promise<void> {
         description: 'Enable slow mode with random delays between check-ins',
         default: false,
       },
+      checkResults: {
+        type: 'boolean',
+        description: 'Give stats on the voters checked in',
+        default: false,
+      },
     })
     .help();
   const args = (await parser.parse(hideBin(argv))) as SimulateScriptArguments;
 
-  const { limit, slow } = args;
+  const { limit, slow, checkResults } = args;
+
+  if (checkResults) {
+    // ...existing code to initialize store if necessary...
+    const voters = await getAllVoters();
+    const checkedInVoters = voters.filter((v) => v.checkIn);
+    const totalCheckedIn = checkedInVoters.length;
+
+    const freq: Record<number, number> = {};
+    for (const v of checkedInVoters) {
+      if (v.checkIn) {
+        const num = v.checkIn.checkInNumber;
+        freq[num] = (freq[num] || 0) + 1;
+      }
+    }
+    const uniqueCheckInNumbers = Object.keys(freq).length;
+    let duplicateCount = 0;
+    for (const k of Object.keys(freq)) {
+      if (freq[k as unknown as number] > 1) {
+        duplicateCount += 1;
+      }
+    }
+
+    console.log('Total checked in voters:', totalCheckedIn);
+    console.log('Total unique checkInNumber values:', uniqueCheckInNumbers);
+    console.log('Total voters with duplicated checkInNumber:', duplicateCount);
+    return 0;
+  }
+
   const range =
     args.range && /^[A-Z]-[A-Z]$/i.test(args.range) ? args.range : undefined;
 
   await checkInAllVotersOnCurrentMachine(limit, range, slow);
+  return 0;
 }

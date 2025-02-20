@@ -31,7 +31,7 @@ export const WORKSPACE =
     ? join(__dirname, '../dev-workspace')
     : undefined);
 
-export const NETWORK_POLLING_INTERVAL = 5000;
+export const NETWORK_POLLING_INTERVAL = 100;
 export const MACHINE_DISCONNECTED_TIMEOUT = 10000;
 export const NETWORK_REQUEST_TIMEOUT = 1000;
 

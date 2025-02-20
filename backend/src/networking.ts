@@ -14,6 +14,7 @@ import {
 import type { Api } from './app';
 
 const debug = rootDebug.extend('networking');
+const perfDebug = rootDebug.extend('networking:perf');
 
 const execPromise = promisify(exec);
 // Checks if there is any network interface 'UP'.
@@ -67,11 +68,18 @@ export async function setupMachineNetworking({
   // Advertise a service for this machine
   debug('Publishing avahi service %s on port %d', currentNodeServiceName, PORT);
   await AvahiService.advertiseHttpService(currentNodeServiceName, PORT);
+  console.log('network polling is: ', NETWORK_POLLING_INTERVAL);
+  let lastTime = Date.now();
 
   // Poll every 5s for new machines on the network
   process.nextTick(async () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     for await (const _ of setInterval(NETWORK_POLLING_INTERVAL)) {
+      perfDebug(
+        'Polling network for new machines ms since last poll:',
+        Date.now() - lastTime
+      );
+      lastTime = Date.now();
       if (!(await hasOnlineInterface())) {
         // There is no network to try to connect over. Bail out.
         debug(
@@ -182,6 +190,7 @@ export async function setupMachineNetworking({
       }
       // Clean up stale machines
       workspace.store.cleanupStalePollbookServices();
+      perfDebug('Finished polling network loop');
     }
   });
 }

@@ -61,6 +61,7 @@ export function createVoterCheckInEvent(
     timestamp: hlcTimestamp,
     voterId,
     checkInData: {
+      checkInNumber: 0,
       timestamp,
       identificationMethod: {
         type: 'photoId',

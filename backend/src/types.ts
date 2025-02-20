@@ -5,7 +5,6 @@ import {
   CountySchema,
   ElectionIdSchema,
   PrinterStatus,
-  Vote,
   Election as VxSuiteElection,
 } from '@votingworks/types';
 import { BatteryInfo } from '@votingworks/backend';
@@ -82,6 +81,7 @@ export type VoterIdentificationMethod =
     };
 
 export interface VoterCheckIn {
+  checkInNumber: number;
   identificationMethod: VoterIdentificationMethod;
   isAbsentee: boolean;
   timestamp: string;
@@ -89,6 +89,7 @@ export interface VoterCheckIn {
 }
 
 export const VoterCheckInSchema: z.ZodSchema<VoterCheckIn> = z.object({
+  checkInNumber: z.number(),
   identificationMethod: z.union([
     z.object({
       type: z.literal('photoId'),

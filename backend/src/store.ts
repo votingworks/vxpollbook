@@ -539,6 +539,7 @@ export class Store {
     const isoTimestamp = new Date().toISOString();
     voter.checkIn = {
       identificationMethod,
+      checkInNumber: this.nextCheckInNumber(),
       isAbsentee: this.getIsAbsenteeMode(),
       machineId: this.machineId,
       timestamp: isoTimestamp, // human readable timestamp for paper backup
@@ -762,6 +763,23 @@ export class Store {
 
   private isVoterNameChangeValid(nameChange: VoterNameChangeRequest): boolean {
     return nameChange.firstName.length > 0 && nameChange.lastName.length > 0;
+  }
+
+  private nextCheckInNumber(): number {
+    // Count all of the check-in events that have occurred and add one. This
+    // ensures that when we undo a check-in, the next check-in will have a
+    // unique number. Note that we don't have any cross-machine locking, so it's
+    // still possible for two machines to generate the same check-in number if
+    // they have a different set of events.
+    const { checkInCount } = this.client.one(
+      `
+        SELECT COUNT(*) as checkInCount
+        FROM event_log
+        WHERE event_type = ?
+      `,
+      EventType.VoterCheckIn
+    ) as { checkInCount: number };
+    return checkInCount + 1;
   }
 
   changeVoterName(voterId: string, nameChange: VoterNameChangeRequest): Voter {

@@ -50,7 +50,6 @@ import { HlcTimestamp, HybridLogicalClock } from './hybrid_logical_clock';
 import { convertDbRowsToPollbookEvents } from './event_helpers';
 
 const debug = rootDebug.extend('store');
-const perfDebug = rootDebug.extend('store:perf');
 
 const SchemaPath = join(__dirname, '../schema.sql');
 
@@ -536,7 +535,6 @@ export class Store {
     voterId: string;
     identificationMethod: VoterIdentificationMethod;
   }): { voter: Voter; count: number } {
-    perfDebug('start check in');
     const startTime = Date.now();
     debug('Recording check-in for voter %s', voterId);
     const voters = this.getVoters();
@@ -570,10 +568,6 @@ export class Store {
       voter,
       count: this.getCheckInCount(),
     };
-    perfDebug(
-      `checked in ${voter.firstName} ${voter.middleName} ${voter.lastName}`
-    );
-    perfDebug('recordVoterCheckIn took %d ms', Date.now() - startTime);
     return result;
   }
 

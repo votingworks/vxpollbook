@@ -15,7 +15,7 @@ import {
 import type { Api } from './app';
 
 const debug = rootDebug.extend('networking');
-const perfDebug = rootDebug.extend('networking:perf');
+const perfDebug = debug.extend('perf');
 
 const execPromise = promisify(exec);
 // Checks if there is any network interface 'UP'.
@@ -71,7 +71,7 @@ export function fetchEventsFromConnectedPollbooks({
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     for await (const _ of setInterval(EVENT_POLLING_INTERVAL)) {
       perfDebug(
-        'Polling network for new machines ms since last poll:',
+        'Polling network events ms since last poll:',
         Date.now() - lastTime
       );
       lastTime = Date.now();
@@ -85,8 +85,6 @@ export function fetchEventsFromConnectedPollbooks({
 
       for (const currentName of Object.keys(previouslyConnected)) {
         const currentPollbookService = previouslyConnected[currentName];
-        perfDebug('On inner for loop ', Date.now() - lastTime);
-        perfDebug('Checking service %s', currentPollbookService.machineId);
         if (
           currentPollbookService.status !== PollbookConnectionStatus.Connected
         ) {
@@ -124,7 +122,7 @@ export function fetchEventsFromConnectedPollbooks({
       }
       // Clean up stale machines
       workspace.store.cleanupStalePollbookServices();
-      perfDebug('Finished polling network loop: ', Date.now() - lastTime);
+      perfDebug('Finished polling event loop: ', Date.now() - lastTime);
     }
   });
 }
@@ -160,7 +158,6 @@ export async function setupMachineNetworking({
       const currentElection = workspace.store.getElection();
       debug('Polling network for new machines');
       const services = await AvahiService.discoverHttpServices();
-      perfDebug('Loaded http services', Date.now() - lastTime);
       const previouslyConnected = workspace.store.getPollbookServicesByName();
       // If there are any services that were previously connected that no longer show up in avahi
       // Mark them as shut down
@@ -186,8 +183,6 @@ export async function setupMachineNetworking({
         continue;
       }
       for (const { name, host, port } of services) {
-        perfDebug('On inner for loop ', Date.now() - lastTime);
-        perfDebug('Checking service %s', name);
         if (name !== currentNodeServiceName && !workspace.store.getIsOnline()) {
           // do not bother trying to ping other nodes if we are not online
           continue;

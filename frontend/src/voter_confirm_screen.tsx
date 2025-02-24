@@ -153,7 +153,7 @@ export function VoterConfirmScreen({
             ) : (
               <Row style={{ gap: '0.5rem' }}>
                 <CheckboxButton
-                  label="Out-of-State ID?"
+                  label="Out-of-State ID"
                   onChange={(checked) => {
                     setIdentificationMethod(
                       checked
@@ -164,28 +164,29 @@ export function VoterConfirmScreen({
                   isChecked={identificationMethod.type === 'outOfStateLicense'}
                 />
 
-                <SearchSelect
-                  id="state"
-                  options={Object.entries(usStates).map(([value, label]) => ({
-                    value,
-                    label: `${value} - ${label}`,
-                  }))}
-                  value={
-                    identificationMethod.type === 'outOfStateLicense'
-                      ? identificationMethod.state
-                      : undefined
-                  }
-                  onChange={(state) =>
-                    setIdentificationMethod({
-                      type: 'outOfStateLicense',
-                      state,
-                    })
-                  }
-                  style={{ width: '14rem' }}
-                  placeholder="Select state..."
-                  ariaLabel="Select state"
-                  disabled={identificationMethod.type !== 'outOfStateLicense'}
-                />
+                {identificationMethod.type === 'outOfStateLicense' && (
+                  <SearchSelect
+                    id="state"
+                    options={Object.entries(usStates).map(([value, label]) => ({
+                      value,
+                      label: `${value} - ${label}`,
+                    }))}
+                    value={
+                      identificationMethod.type === 'outOfStateLicense'
+                        ? identificationMethod.state
+                        : undefined
+                    }
+                    onChange={(state) =>
+                      setIdentificationMethod({
+                        type: 'outOfStateLicense',
+                        state,
+                      })
+                    }
+                    style={{ width: '14rem' }}
+                    placeholder="Select state..."
+                    ariaLabel="Select state"
+                  />
+                )}
               </Row>
             )}
             <Row style={{ gap: '0.5rem' }}>

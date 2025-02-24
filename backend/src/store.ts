@@ -115,13 +115,6 @@ export class Store {
     return this.currentClock.update(remoteClock);
   }
 
-  private getNextReceiptNumber(): number {
-    const row = this.client.one(
-      'SELECT max(receipt_number) as max_receipt_number FROM event_log'
-    ) as { max_receipt_number: number };
-    return row.max_receipt_number + 1;
-  }
-
   private getNextEventId(): number {
     if (!this.nextEventId) {
       const row = this.client.one(
@@ -249,6 +242,13 @@ export class Store {
         }
       }
     }
+  }
+
+  getNextReceiptNumber(): number {
+    const row = this.client.one(
+      'SELECT max(receipt_number) as max_receipt_number FROM event_log'
+    ) as { max_receipt_number: number };
+    return row.max_receipt_number + 1;
   }
 
   getConfigurationStatus(): ConfigurationStatus | undefined {

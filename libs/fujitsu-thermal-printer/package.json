@@ -35,7 +35,7 @@
     "@types/debug": "4.1.8",
     "@types/jest": "^29.5.3",
     "@types/node": "20.16.0",
-    "esbuild": "0.21.2",
+    "esbuild": "0.25.0",
     "esbuild-runner": "2.2.2",
     "eslint-plugin-vx": "workspace:*",
     "is-ci-cli": "2.2.0",

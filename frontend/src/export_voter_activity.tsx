@@ -22,9 +22,9 @@ export function ExportVoterActivityModal({
       if (usbDrive.status === 'mounted') {
         return (
           <Modal
-            title="Export Voter Activity"
+            title="Export Voter History"
             content={
-              <P>Voter activity will be exported to the inserted USB drive.</P>
+              <P>Voter history will be exported to the inserted USB drive.</P>
             }
             onOverlayClick={onClose}
             actions={
@@ -45,7 +45,7 @@ export function ExportVoterActivityModal({
       return (
         <Modal
           title="No USB Drive Detected"
-          content={<P>Insert a USB drive to export voter activity.</P>}
+          content={<P>Insert a USB drive to export voter history.</P>}
           onOverlayClick={onClose}
           actions={<Button onPress={onClose}>Cancel</Button>}
         />
@@ -53,13 +53,13 @@ export function ExportVoterActivityModal({
     }
 
     case 'loading':
-      return <Modal content={<Loading>Exporting Voter Activity</Loading>} />;
+      return <Modal content={<Loading>Exporting Voter History</Loading>} />;
 
     case 'success':
       return (
         <Modal
-          title="Voter Activity Exported"
-          content={<P>Voter activity exported to the inserted USB drive.</P>}
+          title="Voter History Exported"
+          content={<P>Voter history exported to the inserted USB drive.</P>}
           onOverlayClick={onClose}
           actions={<Button onPress={onClose}>Close</Button>}
         />
@@ -68,8 +68,8 @@ export function ExportVoterActivityModal({
     case 'error':
       return (
         <Modal
-          title="Failed to Export Voter Activity"
-          content={<P>Failed to export voter activity to the USB drive.</P>}
+          title="Failed to Export Voter History"
+          content={<P>Failed to export voter history to the USB drive.</P>}
           onOverlayClick={onClose}
           actions={<Button onPress={onClose}>Close</Button>}
         />
@@ -92,7 +92,7 @@ export function ExportVoterActivityButton(): JSX.Element {
         color="primary"
         onPress={() => setIsShowingModal(true)}
       >
-        Export Voter Activity
+        Export Voter History
       </Button>
       {isShowingModal && (
         <ExportVoterActivityModal onClose={() => setIsShowingModal(false)} />

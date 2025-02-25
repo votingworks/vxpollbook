@@ -343,11 +343,9 @@ export function CertificationPageHeader({
   election: Election;
 }): JSX.Element {
   return (
-    <StyledVoterChecklistHeader>
+    <StyledVoterChecklistHeader style={{ padding: 0 }}>
       <div>
-        <h1 style={{ fontWeight: 400 }}>
-          Backup Voter Checklist: Certification
-        </h1>
+        <h1>Backup Voter Checklist: Certification</h1>
         <h2>
           {election.title} &bull;{' '}
           {format.localeLongDate(
@@ -387,14 +385,23 @@ export function CertificationPage({
   district,
   election,
   voterCountByParty,
+  exportTime,
+  lastReceiptNumber,
 }: {
   district: string;
   election: Election;
   voterCountByParty: Record<string, number>;
+  exportTime: Date;
+  lastReceiptNumber: number;
 }): JSX.Element {
   const totalVoterCount = iter(Object.values(voterCountByParty)).sum();
   return (
     <StyledCertificationPage>
+      <CertificationPageHeader
+        election={election}
+        exportTime={exportTime}
+        lastReceiptNumber={lastReceiptNumber}
+      />
       <div
         style={{
           display: 'flex',

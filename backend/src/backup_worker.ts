@@ -17,7 +17,6 @@ import { Buffer } from 'node:buffer';
 import { PartyAbbreviation, Workspace } from './types';
 import {
   CertificationPage,
-  CertificationPageHeader,
   VoterChecklist,
   VoterChecklistHeader,
 } from './voter_checklist';
@@ -124,11 +123,6 @@ async function exportBackupVoterChecklist(
       ).unsafeUnwrap();
     });
 
-  const certificationHeader = React.createElement(CertificationPageHeader, {
-    election,
-    exportTime,
-    lastReceiptNumber,
-  });
   const voterCountByParty = workspace.store.getAllVoters().reduce(
     (counts, voter) => ({
       ...counts,
@@ -141,13 +135,17 @@ async function exportBackupVoterChecklist(
     district: voterGroups[0].existingVoters[0].district,
     election,
     voterCountByParty,
+    exportTime,
+    lastReceiptNumber,
   });
   const certificationPdf = (
     await renderToPdf({
-      headerTemplate: certificationHeader,
       document: certificationPage,
       landscape: true,
-      marginDimensions,
+      marginDimensions: {
+        ...marginDimensions,
+        top: marginDimensions.bottom,
+      },
     })
   ).unsafeUnwrap();
 

@@ -32,7 +32,7 @@ export function NameChangeReceipt({
       >
         <div>
           <div>
-            <strong>Voter Name Updated</strong>
+            <strong>Voter Name Update</strong>
           </div>
           <div>
             {format.localeNumericDateAndTime(new Date(nameChange.timestamp))}

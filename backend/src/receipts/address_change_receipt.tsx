@@ -33,7 +33,7 @@ export function AddressChangeReceipt({
       >
         <div>
           <div>
-            <strong>Voter Address Updated</strong>
+            <strong>Voter Address Update</strong>
           </div>
           <div>
             {format.localeNumericDateAndTime(new Date(addressChange.timestamp))}

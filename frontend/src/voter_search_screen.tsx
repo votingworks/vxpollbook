@@ -92,6 +92,8 @@ export function VoterSearch({
               }
               style={{ flex: 1 }}
               type="text"
+              // eslint-disable-next-line jsx-a11y/no-autofocus
+              autoFocus
             />
           </InputGroup>
           <InputGroup label="First Name">

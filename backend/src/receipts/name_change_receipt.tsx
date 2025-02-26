@@ -1,5 +1,4 @@
 import { assert } from '@votingworks/basics';
-import { Icons } from '@votingworks/ui';
 import { format } from '@votingworks/utils';
 import { Voter } from '../types';
 import {
@@ -8,6 +7,7 @@ import {
   PartyName,
   ReceiptMetadataProps,
   ReceiptMetadata,
+  ReceiptIcon,
 } from './receipt_helpers';
 
 export function NameChangeReceipt({
@@ -40,7 +40,7 @@ export function NameChangeReceipt({
           <div>Pollbook: {machineId}</div>
         </div>
 
-        <Icons.Edit style={{ fontSize: '3rem' }} />
+        <ReceiptIcon icon="Edit" />
       </div>
       <br />
       <div>

@@ -117,6 +117,9 @@ importers:
       jsbarcode:
         specifier: ^3.11.6
         version: 3.11.6
+      nanoid:
+        specifier: ^3.3.7
+        version: 3.3.8
       node-fetch:
         specifier: ^2.6.0
         version: 2.7.0

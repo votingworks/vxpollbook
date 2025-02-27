@@ -125,7 +125,6 @@ async function exportBackupVoterChecklist(
     {} as Record<PartyAbbreviation, number>
   );
   const certificationPage = React.createElement(CertificationPage, {
-    district: voterGroups[0].existingVoters[0].district,
     election,
     voterCountByParty,
     exportTime,

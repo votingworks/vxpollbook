@@ -173,11 +173,13 @@ async function exportBackupVoterChecklist(
     usbDrive,
   });
   for (const [i, pdf] of iter(pdfs).enumerate()) {
-    const inProgressName = `backup_voter_checklist_part_${i}.in_progress.pdf`;
+    const inProgressName = `part_${
+      i + 1
+    }_backup_voter_checklist.in_progress.pdf`;
     const inProgressPath = join(usbDriveStatus.mountPoint, inProgressName);
     const finalPath = join(
       usbDriveStatus.mountPoint,
-      `backup_voter_checklist_part_${i}.pdf`
+      `part_${i + 1}_backup_voter_checklist.pdf`
     );
     (
       await exporter.exportDataToUsbDrive('', inProgressPath, pdf, {

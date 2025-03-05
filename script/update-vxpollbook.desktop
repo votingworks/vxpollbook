@@ -1,7 +1,0 @@
-[Desktop Entry]
-Version=1.0
-Name=Update VxPollbook
-Icon=updatecode.png
-Exec=gnome-terminal -- /bin/sh -c 'env PATH=$PATH:/sbin env /vx/scripts/update-vxpollbook.sh'
-Terminal=false
-Type=Application

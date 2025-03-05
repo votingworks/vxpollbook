@@ -1,1 +1,0 @@
-ACTION=="move", SUBSYSTEM=="net", ENV{ID_MODEL}=="802.11_n_WLAN", ENV{SYSTEMD_WANTS}+="join-mesh-network.service"

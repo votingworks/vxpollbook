@@ -1,7 +1,0 @@
-[Unit]
-Description=Run avahi-autoipd for mesh network
-
-[Service]
-Type=simple
-ExecStart=sudo avahi-autoipd -D -w mesh0
-RemainAfterExit=Yes
